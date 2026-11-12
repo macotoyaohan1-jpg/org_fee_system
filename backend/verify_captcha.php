@@ -33,7 +33,25 @@ if (
     ]);
 }
 
-respond(501, [
-    'valid' => false,
-    'message' => 'CAPTCHA answer verification is not available yet.'
-]);
+$answer = $_POST['captcha_answer'] ?? null;
+$expectedAnswer = $_SESSION['login_captcha'] ?? null;
+
+if (!is_string($expectedAnswer) || $expectedAnswer === '') {
+    respond(409, [
+        'valid' => false,
+        'message' => 'The CAPTCHA expired. Refresh the challenge and try again.'
+    ]);
+}
+
+if (!is_string($answer) || !hash_equals($expectedAnswer, strtoupper(trim($answer)))) {
+    unset($_SESSION['login_captcha'], $_SESSION['login_captcha_verified_at']);
+    respond(422, [
+        'valid' => false,
+        'message' => 'The CAPTCHA answer was incorrect. A new challenge has been loaded.'
+    ]);
+}
+
+unset($_SESSION['login_captcha']);
+$_SESSION['login_captcha_verified_at'] = time();
+
+respond(200, ['valid' => true]);
