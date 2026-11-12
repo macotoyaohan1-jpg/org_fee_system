@@ -32,3 +32,18 @@ function auth_current_user(PDO $pdo): ?array
     return $user;
 }
 
+function auth_require_treasurer(PDO $pdo, string $approvalStatus): array
+{
+    auth_start_session();
+    $user = auth_current_user($pdo);
+
+    if (
+        $user['role'] !== 'TREASURER' ||
+        $user['approval_status'] !== $approvalStatus
+    ) {
+        auth_redirect('access_denied.php');
+    }
+
+    return $user;
+}
+
