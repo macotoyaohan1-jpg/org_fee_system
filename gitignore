@@ -1,0 +1,12 @@
+# Private configuration
+/config.php
+
+# Composer dependencies
+/vendor/
+
+# Error logs
+*.log
+error_log
+
+# Temporary files
+*.tmp
