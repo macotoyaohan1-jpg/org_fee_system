@@ -57,6 +57,7 @@ $csrf = $_SESSION['csrf_token'];
                   id="loginForm">
 
                 <input type="hidden"
+                       id="csrfToken"
                        name="csrf_token"
                        value="<?= htmlspecialchars($csrf) ?>">
 
@@ -99,18 +100,28 @@ $csrf = $_SESSION['csrf_token'];
                 <h2 class="captcha-heading">CAPTCHA Verification</h2>
 
                 <div class="field captcha-field">
-                    <p id="captchaQuestion">
-                        CAPTCHA will appear here.
-                    </p>
+                    <div class="captcha-challenge">
+                        <img id="loginCaptchaImage"
+                             src="captcha.image.php"
+                             alt="CAPTCHA challenge">
+                        <button type="button"
+                                class="captcha-refresh"
+                                id="refreshCaptcha">
+                            Refresh
+                        </button>
+                    </div>
 
                     <label for="captcha_answer">
                         Your Answer *
                     </label>
 
-                    <input type="number"
+                    <input type="text"
                            id="captcha_answer"
                            name="captcha_answer"
+                           maxlength="6"
                            placeholder="Enter your answer"
+                           autocomplete="off"
+                           autocapitalize="characters"
                            required>
                 </div>
 
