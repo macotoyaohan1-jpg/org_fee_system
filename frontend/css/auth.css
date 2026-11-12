@@ -716,6 +716,41 @@ h2 {
     }
 }
 
+.login-panel .captcha-challenge {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.login-panel .captcha-challenge img {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    flex: 1;
+    border-radius: 8px;
+    background: var(--input);
+    object-fit: contain;
+}
+
+.login-panel .captcha-refresh {
+    min-height: 36px;
+    padding: 0 9px;
+    border: 1px solid #cbd9cc;
+    border-radius: 8px;
+    background: #f7faf6;
+    color: #2a6940;
+    font: inherit;
+    font-size: 0.66rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.login-panel .captcha-refresh:hover {
+    background: #e6f1e2;
+}
+
 @media (prefers-reduced-motion: reduce) {
     @view-transition {
         navigation: none;
