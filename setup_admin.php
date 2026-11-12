@@ -298,3 +298,9 @@ if (!$created) {
 }
 
 fwrite(STDOUT, "Admin account created successfully.\n");
+if (unlink(__FILE__)) {
+    fwrite(STDOUT, "The one-time setup script deleted itself.\n");
+} else {
+    fwrite(STDERR, "Admin was created, but the setup script could not be deleted. Remove setup_admin.php manually.\n");
+    exit(1);
+}
