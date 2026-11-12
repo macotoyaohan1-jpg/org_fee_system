@@ -47,3 +47,15 @@ function auth_require_treasurer(PDO $pdo, string $approvalStatus): array
     return $user;
 }
 
+function auth_require_admin(PDO $pdo): array
+{
+    auth_start_session();
+    $user = auth_current_user($pdo);
+
+    if ($user['role'] !== 'ADMIN') {
+        auth_redirect('access_denied.php');
+    }
+
+    return $user;
+}
+
