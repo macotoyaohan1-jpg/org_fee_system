@@ -111,7 +111,7 @@ try {
     } catch (RuntimeException $error) {
         error_log('Unable to start login OTP challenge: ' . $error->getMessage());
         return_to_login(
-            'Unable to send a verification code. Check the email configuration and try again.',
+            'Sign-in is temporarily unavailable. Please try again later.',
             $state['failures']
         );
     }
