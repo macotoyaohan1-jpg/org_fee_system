@@ -15,6 +15,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const togglePassword = document.getElementById("togglePassword");
 
     const loginButton = document.getElementById("loginButton");
+    const captcha = document.getElementById("captcha_answer");
+    const captchaImage = document.getElementById("loginCaptchaImage");
+    const refreshCaptcha = document.getElementById("refreshCaptcha");
+    const loginError = document.getElementById("loginError");
+
+    function refreshCaptchaImage() {
+        captcha.value = "";
+        captchaImage.src = "captcha.image.php?refresh=" + Date.now();
+    }
+
+    refreshCaptcha.addEventListener("click", refreshCaptchaImage);
 
 
     // =========================================
