@@ -63,12 +63,15 @@ function auth_mail_settings(): array
     $password = $value('ORG_FEE_SMTP_PASSWORD', 'password');
     $fromAddress = $value('ORG_FEE_SMTP_FROM_ADDRESS', 'from_address', $username);
     $fromName = $value('ORG_FEE_SMTP_FROM_NAME', 'from_name', 'Student Organization Fee System');
+    $numericPort = ctype_digit($port) ? (int) $port : 0;
 
     if (
+        $host === '' ||
         $username === '' ||
         $password === '' ||
         filter_var($fromAddress, FILTER_VALIDATE_EMAIL) === false ||
-        !ctype_digit($port)
+        $numericPort < 1 ||
+        $numericPort > 65535
     ) {
         throw new RuntimeException(
             'SMTP is not configured. Set the ORG_FEE_SMTP_USERNAME, ORG_FEE_SMTP_PASSWORD, and ORG_FEE_SMTP_FROM_ADDRESS settings.'
@@ -77,7 +80,7 @@ function auth_mail_settings(): array
 
     return [
         'host' => $host,
-        'port' => (int) $port,
+        'port' => $numericPort,
         'username' => $username,
         'password' => $password,
         'from_address' => $fromAddress,
