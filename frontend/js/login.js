@@ -57,12 +57,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // LOGIN FORM VALIDATION
     // =========================================
 
-    loginForm.addEventListener("submit", function (event) {
+    loginForm.addEventListener("submit", async function (event) {
 
         const username = document.getElementById("username");
-        const captcha = document.getElementById("captcha_answer");
-
-        const loginError = document.getElementById("loginError");
 
         loginError.textContent = "";
 
@@ -99,8 +96,35 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Let PHP process the login.
-        // PHP must still validate every field.
+        event.preventDefault();
+        loginButton.disabled = true;
+
+        try {
+            const response = await fetch("backend/verify_captcha.php", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                },
+                body: new URLSearchParams({
+                    csrf_token: document.getElementById("csrfToken").value,
+                    captcha_answer: captcha.value.trim()
+                })
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.valid) {
+                loginError.textContent = result.message || "The CAPTCHA answer was incorrect.";
+                captcha.focus();
+                return;
+            }
+
+            HTMLFormElement.prototype.submit.call(loginForm);
+        } catch (error) {
+            loginError.textContent = "Unable to verify CAPTCHA. Please refresh the challenge and try again.";
+        } finally {
+            loginButton.disabled = false;
+        }
 
     });
 
