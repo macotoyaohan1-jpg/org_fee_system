@@ -153,6 +153,14 @@ function auth_issue_login_otp(PDO $pdo, string $userId, string $email, bool $isR
     $pdo->beginTransaction();
 
     try {
+        $userLock = $pdo->prepare(
+            'SELECT id_number FROM users WHERE id_number = :user_id FOR UPDATE'
+        );
+        $userLock->execute(['user_id' => $userId]);
+        if ($userLock->fetchColumn() === false) {
+            throw new RuntimeException('The account could not be found.');
+        }
+
         $latestStatement = $pdo->prepare(
             'SELECT otp_id, TIMESTAMPDIFF(SECOND, created_at, NOW()) AS age_seconds
              FROM user_otps
