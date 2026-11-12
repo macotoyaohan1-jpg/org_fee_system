@@ -244,23 +244,6 @@ $questions = [
                     </div>
                 <?php endfor; ?>
 
-                <h2>CAPTCHA Verification</h2>
-
-                <div class="field">
-                    <label for="captcha_answer">
-                        Enter CAPTCHA Answer *
-                    </label>
-
-                    <p id="captchaQuestion">
-                        CAPTCHA will appear here.
-                    </p>
-
-                    <input type="number"
-                           id="captcha_answer"
-                           name="captcha_answer"
-                           required>
-                </div>
-
                 <div class="field privacy-field">
                     <input type="checkbox"
                            id="privacy_consent"
