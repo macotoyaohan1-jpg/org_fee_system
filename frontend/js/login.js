@@ -98,6 +98,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         event.preventDefault();
         loginButton.disabled = true;
+        refreshCaptcha.disabled = true;
+        captcha.disabled = true;
 
         try {
             const response = await fetch("backend/verify_captcha.php", {
@@ -115,6 +117,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (!response.ok || !result.valid) {
                 loginError.textContent = result.message || "The CAPTCHA answer was incorrect.";
+                captcha.value = "";
+                refreshCaptchaImage();
                 captcha.focus();
                 return;
             }
@@ -122,8 +126,11 @@ document.addEventListener("DOMContentLoaded", function () {
             HTMLFormElement.prototype.submit.call(loginForm);
         } catch (error) {
             loginError.textContent = "Unable to verify CAPTCHA. Please refresh the challenge and try again.";
+            refreshCaptchaImage();
         } finally {
             loginButton.disabled = false;
+            refreshCaptcha.disabled = false;
+            captcha.disabled = false;
         }
 
     });
