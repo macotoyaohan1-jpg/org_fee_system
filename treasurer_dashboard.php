@@ -4220,6 +4220,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
                             <input
                                 type="search"
                                 name="search"
+                                aria-label="Search payment history"
                                 placeholder="Search payment records..."
                                 value="<?= e($paymentSearch) ?>"
                                 maxlength="100"
