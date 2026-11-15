@@ -2844,6 +2844,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
                                                         <button
                                                             type="button"
                                                             class="feature-button secondary"
+                                                            aria-label="Edit membership fee for <?= e($setting['academic_year']) ?>, <?= e($setting['semester']) ?>"
                                                             data-fee-setting-id="<?= (int) $setting['fee_setting_id'] ?>"
                                                             data-academic-year="<?= e($setting['academic_year']) ?>"
                                                             data-semester="<?= e($setting['semester']) ?>"
