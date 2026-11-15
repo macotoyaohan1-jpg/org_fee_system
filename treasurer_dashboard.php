@@ -2964,7 +2964,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
                     </div>
 
                     <?php if ($feeError !== ''): ?>
-                        <div class="feature-message error" id="feeSettingsError">
+                        <div class="feature-message error" id="feeSettingsError" role="alert">
                             <?= e($feeError) ?>
                         </div>
                     <?php endif; ?>
