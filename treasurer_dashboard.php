@@ -2495,6 +2495,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
 
             <a
                 href="treasurer_dashboard.php?view=overview"
+                aria-current="<?= $currentView === 'overview' ? 'page' : 'false' ?>"
                 class="nav-link<?= $currentView === 'overview' ? ' active' : '' ?>"
             >
                 Overview
@@ -2504,6 +2505,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
 
                 <a
                     href="treasurer_dashboard.php?view=members"
+                    aria-current="<?= $currentView === 'members' ? 'page' : 'false' ?>"
                     class="nav-link<?= $currentView === 'members' ? ' active' : '' ?>"
                 >
                     Membership Management
@@ -2511,6 +2513,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
 
                 <a
                     href="treasurer_dashboard.php?view=add-member"
+                    aria-current="<?= $currentView === 'add-member' ? 'page' : 'false' ?>"
                     class="nav-link<?= $currentView === 'add-member' ? ' active' : '' ?>"
                 >
                     Add New Member
@@ -2518,6 +2521,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
 
                 <a
                     href="treasurer_dashboard.php?view=payment-monitoring"
+                    aria-current="<?= in_array($currentView, ['payment-monitoring', 'record-payment'], true) ? 'page' : 'false' ?>"
                     class="nav-link<?= in_array($currentView, ['payment-monitoring', 'record-payment'], true) ? ' active' : '' ?>"
                 >
                     Payment Monitoring
@@ -2525,6 +2529,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
 
                 <a
                     href="treasurer_dashboard.php?view=payment-history"
+                    aria-current="<?= $currentView === 'payment-history' ? 'page' : 'false' ?>"
                     class="nav-link<?= $currentView === 'payment-history' ? ' active' : '' ?>"
                 >
                     Payment History
@@ -2534,6 +2539,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
 
             <a
                 href="treasurer_dashboard.php?view=account-settings"
+                aria-current="<?= $currentView === 'account-settings' ? 'page' : 'false' ?>"
                 class="nav-link<?= $currentView === 'account-settings' ? ' active' : '' ?>"
             >
                 Account Settings
