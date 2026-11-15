@@ -3733,6 +3733,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
                             <input
                                 type="search"
                                 name="search"
+                                aria-label="Search member payment records"
                                 placeholder="Search Student ID, name, program, or academic term..."
                                 value="<?= e($monitoringSearch) ?>"
                                 maxlength="100"
