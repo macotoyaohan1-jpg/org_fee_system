@@ -1,4 +1,3 @@
-
 <?php
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -12,9 +11,63 @@ require_once __DIR__ . '/otp_service.php';
 
 auth_start_session();
 
-function registration_fail(string $message): void
+if (($_POST['action'] ?? '') === 'check_username') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+
+    $username = $_POST['username'] ?? null;
+    if (!auth_csrf_is_valid()) {
+        http_response_code(403);
+        echo json_encode([
+            'available' => false,
+            'message' => 'Refresh the registration form and try again.'
+        ]);
+        exit;
+    }
+
+    if (
+        !is_string($username) ||
+        preg_match('/\A[A-Za-z][A-Za-z0-9]{7,18}\z/', $username) !== 1
+    ) {
+        echo json_encode([
+            'available' => false,
+            'message' => 'Use 8-19 letters and numbers, starting with a letter.'
+        ]);
+        exit;
+    }
+
+    try {
+        $usernameCheck = $pdo->prepare(
+            'SELECT COUNT(*) FROM users WHERE username = :username'
+        );
+        $usernameCheck->execute(['username' => $username]);
+        $available = (int) $usernameCheck->fetchColumn() === 0;
+    } catch (PDOException $error) {
+        error_log('Username availability check failed: ' . $error->getMessage());
+        http_response_code(503);
+        echo json_encode([
+            'available' => false,
+            'message' => 'Username availability could not be checked. Try again.'
+        ]);
+        exit;
+    }
+
+    echo json_encode([
+        'available' => $available,
+        'message' => $available ? 'Username is available.' : 'This username is already registered.'
+    ]);
+    exit;
+}
+
+function registration_fail(string $message, ?string $field = null): void
 {
-    $_SESSION['registration_error'] = $message;
+    unset($_SESSION['registration_error'], $_SESSION['registration_errors']);
+
+    if ($field !== null) {
+        $_SESSION['registration_errors'] = [$field => $message];
+    } else {
+        $_SESSION['registration_error'] = $message;
+    }
 
     $preserve = [
         'id_number', 'first_name', 'middle_name', 'family_name', 'extension',
@@ -60,7 +113,15 @@ if (!auth_csrf_is_valid()) {
 $honeypot = $_POST['website'] ?? '';
 
 if (is_string($honeypot) && trim($honeypot) !== '') {
-    registration_fail('Unable to submit the registration. Please try again.');
+    auth_log_event(
+        $pdo,
+        'HONEYPOT_REJECTED',
+        null,
+        null,
+        'The hidden registration field was filled.'
+    );
+    http_response_code(400);
+    exit;
 }
 
 
@@ -79,7 +140,14 @@ if (
     $captchaExpected === '' ||
     !hash_equals($captchaExpected, strtoupper(trim($captchaAnswer)))
 ) {
-    registration_fail('The CAPTCHA code did not match. Please try again.');
+    auth_log_event(
+        $pdo,
+        'CAPTCHA_FAILED',
+        null,
+        null,
+        'The registration CAPTCHA did not match.'
+    );
+    registration_fail('The CAPTCHA code did not match. Please try again.', 'captcha_answer');
 }
 
 
@@ -125,27 +193,31 @@ $confirmPassword = $_POST['confirm_password'] ?? null;
 // =========================================
 
 $maxLengths = [
-    'ID number' => [$idNumber, 9],
-    'First name' => [$firstName, 28],
-    'Middle name' => [$middleName, 28],
-    'Family name' => [$familyName, 28],
-    'Name extension' => [$extension === 'Other' ? $otherExtension : $extension, 10],
-    'Street' => [$street, 50],
-    'Barangay' => [$barangay, 50],
-    'City' => [$city, 50],
-    'Province' => [$province, 50],
-    'Country' => [$country, 50],
-    'ZIP code' => [$zipCode, 4],
-    'Organization name' => [$organizationName, 150],
-    'Organization acronym' => [$organizationAcronym, 30],
-    'Department / college' => [$departmentCollege, 150],
-    'Email' => [$email, 100],
-    'Username' => [$username, 19]
+    'id_number' => ['ID Number', $idNumber, 9],
+    'first_name' => ['First Name', $firstName, AUTH_NAME_MAX_LENGTH],
+    'middle_name' => ['Middle Name', $middleName, AUTH_NAME_MAX_LENGTH],
+    'family_name' => ['Family Name', $familyName, AUTH_NAME_MAX_LENGTH],
+    'other_extension' => [
+        'Name Extension',
+        $extension === 'Other' ? $otherExtension : $extension,
+        10
+    ],
+    'street' => ['Purok / Street', $street, 50],
+    'barangay' => ['Barangay', $barangay, 50],
+    'city' => ['Municipality / City', $city, 50],
+    'province' => ['Province', $province, 50],
+    'country' => ['Country', $country, 50],
+    'zip_code' => ['ZIP Code', $zipCode, 4],
+    'organization_name' => ['Organization Name', $organizationName, 150],
+    'organization_acronym' => ['Organization Acronym', $organizationAcronym, 30],
+    'department_college' => ['Department / College', $departmentCollege, 150],
+    'email' => ['Email', $email, 100],
+    'username' => ['Username', $username, AUTH_USERNAME_MAX_LENGTH]
 ];
 
-foreach ($maxLengths as $label => [$text, $limit]) {
+foreach ($maxLengths as $field => [$label, $text, $limit]) {
     if (strlen($text) > $limit) {
-        registration_fail($label . ' is too long.');
+        registration_fail($label . ' is too long.', $field);
     }
 }
 
@@ -154,8 +226,11 @@ foreach ($maxLengths as $label => [$text, $limit]) {
 // ID NUMBER VALIDATION
 // =========================================
 
-if (!preg_match('/^[0-9]{3}-[0-9]{5}$/', $idNumber)) {
-    registration_fail('Enter your ID number in the format 123-45678.');
+if (!preg_match('/\A[0-9]{4}-[0-9]{4}\z/', $idNumber)) {
+    registration_fail(
+        'ID Number must follow the format xxxx-xxxx.',
+        'id_number'
+    );
 }
 
 
@@ -163,16 +238,80 @@ if (!preg_match('/^[0-9]{3}-[0-9]{5}$/', $idNumber)) {
 // PERSONAL AND ADDRESS VALIDATION
 // =========================================
 
-if (
-    $firstName === '' ||
-    $familyName === '' ||
-    $street === '' ||
-    $barangay === '' ||
-    $city === '' ||
-    $province === '' ||
-    $country === ''
-) {
-    registration_fail('Complete all required personal and address fields.');
+$nameFields = [
+    'first_name' => ['First Name', $firstName, true],
+    'middle_name' => ['Middle Name', $middleName, false],
+    'family_name' => ['Family Name', $familyName, true]
+];
+
+foreach ($nameFields as $field => [$label, $name, $required]) {
+    if ($name === '' && $required) {
+        registration_fail($label . ' is required.', $field);
+    }
+
+    if ($name === '') {
+        continue;
+    }
+
+    if (strlen($name) < 2) {
+        registration_fail($label . ' must be at least 2 characters.', $field);
+    }
+    if (preg_match('/[0-9]/', $name) === 1) {
+        registration_fail('Numbers are not allowed in ' . $label . '.', $field);
+    }
+    if (strpos($name, '  ') !== false) {
+        registration_fail('Double space is not allowed.', $field);
+    }
+    if (preg_match('/([A-Za-z])\1\1/i', $name) === 1) {
+        registration_fail('Three consecutive identical letters are not allowed.', $field);
+    }
+    if (preg_match('/^[A-Z ]+$/', $name) === 1) {
+        registration_fail('Do not use all capital letters.', $field);
+    }
+    if (!preg_match('/\A[A-Za-z]+(?: [A-Za-z]+)*\z/', $name)) {
+        registration_fail('Special characters are not allowed in ' . $label . '.', $field);
+    }
+    if (!preg_match('/\A[A-Z][a-z]+(?: [A-Z][a-z]+)*\z/', $name)) {
+        registration_fail(
+            $field === 'first_name'
+                ? 'First letter of your name must be capital.'
+                : $label . ' must use title case.',
+            $field
+        );
+    }
+}
+
+$addressFields = [
+    'street' => ['Purok / Street', $street, 3, 50, false],
+    'barangay' => ['Barangay', $barangay, 2, 50, true],
+    'city' => ['Municipality / City', $city, 2, 50, true],
+    'province' => ['Province', $province, 2, 50, true],
+    'country' => ['Country', $country, 2, 50, true]
+];
+
+foreach ($addressFields as $field => [$label, $text, $minimum, $maximum, $titleCase]) {
+    if ($text === '') {
+        registration_fail($label . ' is required.', $field);
+    }
+    if (strlen($text) < $minimum || strlen($text) > $maximum) {
+        registration_fail($label . ' must be between ' . $minimum . ' and ' . $maximum . ' characters.', $field);
+    }
+    if (strpos($text, '  ') !== false) {
+        registration_fail('Double space is not allowed in ' . $label . '.', $field);
+    }
+
+    $pattern = $titleCase
+        ? '/\A[A-Z][a-z]*(?: [A-Z][a-z]*)*\z/'
+        : '/\A[A-Za-z0-9]+(?: [A-Za-z0-9]+)*\z/';
+
+    if (!preg_match($pattern, $text)) {
+        registration_fail(
+            $titleCase
+                ? $label . ' must contain title-case letters and spaces only.'
+                : $label . ' must contain letters, numbers, and single spaces only.',
+            $field
+        );
+    }
 }
 
 
@@ -181,7 +320,7 @@ if (
 // =========================================
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    registration_fail('Enter a valid email address.');
+    registration_fail('Please enter a valid email address.', 'email');
 }
 
 
@@ -191,9 +330,12 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
 if (
     $username === '' ||
-    preg_match('/^[A-Za-z0-9._-]{3,19}$/', $username) !== 1
+    preg_match('/\A[A-Za-z][A-Za-z0-9]{7,18}\z/', $username) !== 1
 ) {
-    registration_fail('Username must be 3-19 characters using letters, numbers, dots, underscores, or hyphens.');
+    registration_fail(
+        'Username must start with a letter and contain 8-19 letters and numbers only.',
+        'username'
+    );
 }
 
 
@@ -202,7 +344,7 @@ if (
 // =========================================
 
 if (!preg_match('/^[0-9]{4}$/', $zipCode)) {
-    registration_fail('Enter a four-digit ZIP code.');
+    registration_fail('ZIP Code must contain exactly 4 digits.', 'zip_code');
 }
 
 
@@ -215,7 +357,17 @@ if (!in_array($extension, ['', 'Jr.', 'Sr.', 'Other'], true)) {
 }
 
 if ($extension === 'Other' && $otherExtension === '') {
-    registration_fail('Enter the name extension you selected.');
+    registration_fail('Enter the name extension you selected.', 'other_extension');
+}
+
+if (
+    $extension === 'Other' &&
+    !in_array($otherExtension, ['I', 'II', 'III', 'IV', 'IX', 'X'], true)
+) {
+    registration_fail(
+        'Choose I, II, III, IV, IX, or X for the other name extension.',
+        'other_extension'
+    );
 }
 
 
@@ -228,7 +380,7 @@ if (!in_array(
     ['Academic', 'Socio-Civic', 'Cultural', 'Sports', 'Religious', 'Other'],
     true
 )) {
-    registration_fail('Choose a valid organization type.');
+    registration_fail('Choose a valid organization type.', 'organization_type');
 }
 
 if (
@@ -236,7 +388,10 @@ if (
     $organizationAcronym === '' ||
     $departmentCollege === ''
 ) {
-    registration_fail('Complete all organization fields.');
+    $missingOrganizationField = $organizationName === ''
+        ? 'organization_name'
+        : ($organizationAcronym === '' ? 'organization_acronym' : 'department_college');
+    registration_fail('Complete all organization fields.', $missingOrganizationField);
 }
 
 
@@ -257,7 +412,10 @@ if (
     $birthdate > new DateTimeImmutable('today') ||
     $birthdate->diff(new DateTimeImmutable('today'))->y < 18
 ) {
-    registration_fail('Applicants must be at least 18 years old and enter a valid birthdate.');
+    $message = $birthdate && $birthdate->diff(new DateTimeImmutable('today'))->y < 18
+        ? 'You must be at least 18 years old to register.'
+        : 'Enter a valid birthdate.';
+    registration_fail($message, 'birthdate');
 }
 
 
@@ -270,11 +428,17 @@ if (
     !is_string($confirmPassword) ||
     $password !== $confirmPassword
 ) {
-    registration_fail('The passwords do not match.');
+    registration_fail('Passwords do not match.', 'confirm_password');
 }
 
-if (strlen($password) < 8 || strlen($password) > 64) {
-    registration_fail('Password must be between 8 and 64 characters.');
+if (
+    strlen($password) < AUTH_PASSWORD_MIN_LENGTH ||
+    strlen($password) > 64
+) {
+    registration_fail(
+        'Password must be between ' . AUTH_PASSWORD_MIN_LENGTH . ' and 64 characters.',
+        'password'
+    );
 }
 
 $passwordScore = 0;
@@ -288,7 +452,7 @@ $passwordScore += preg_match('/[^A-Za-z0-9]/', $password) ? 1 : 0;
 $passwordScore += strlen($password) >= 12 ? 1 : 0;
 
 if ($passwordScore < 3) {
-    registration_fail('Choose a medium or strong password with at least three character types.');
+    registration_fail('Choose a medium or strong password with at least three character types.', 'password');
 }
 
 
@@ -297,7 +461,10 @@ if ($passwordScore < 3) {
 // =========================================
 
 if ($value('privacy_consent') !== '1') {
-    registration_fail('Please agree to the Privacy Notice to continue.');
+    registration_fail(
+        'You must agree to the Privacy Notice to register.',
+        'privacy_consent'
+    );
 }
 
 
@@ -314,7 +481,10 @@ if (
     count($questionIds) !== 3 ||
     count($answers) !== 3
 ) {
-    registration_fail('Choose three security questions and provide all three answers.');
+    registration_fail(
+        'Choose the three security questions provided for your account and enter each answer.',
+        'question1'
+    );
 }
 
 $questionIds = array_map(
@@ -331,21 +501,30 @@ if (
     count(array_unique($questionIds)) !== 3 ||
     in_array('', $questionIds, true)
 ) {
-    registration_fail('Choose three different security questions.');
+    registration_fail('Choose three different security questions.', 'question1');
 }
 
+$sortedQuestionIds = $questionIds;
+sort($sortedQuestionIds, SORT_NUMERIC);
+if ($sortedQuestionIds !== ['1', '4', '6']) {
+    registration_fail(
+        'Choose the three security questions assigned to your account.',
+        'question1'
+    );
+}
 
-// Allow letters, single spaces, apostrophes, and hyphens.
-$answerPattern = "/^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/";
+// Security answers accept letters and single spaces only.
+$answerPattern = '/\A[A-Za-z]+(?: [A-Za-z]+)*\z/';
 
-foreach ($answers as $answer) {
+foreach ($answers as $answerIndex => $answer) {
     if (
         strlen($answer) < 2 ||
         strlen($answer) > 50 ||
         preg_match($answerPattern, $answer) !== 1
     ) {
         registration_fail(
-            'Security answers may contain letters, single spaces, apostrophes, and hyphens only.'
+            'Security answers must contain 2-50 letters and single spaces only.',
+            'answer' . ($answerIndex + 1)
         );
     }
 }
@@ -357,7 +536,7 @@ foreach ($answers as $answer) {
 
 try {
 
-    // Confirm that all selected questions exist.
+    // Confirm that the seed-selected questions exist.
     $questionCheck = $pdo->prepare(
         'SELECT COUNT(*) FROM security_question_bank
          WHERE question_id IN (?, ?, ?)'
@@ -374,7 +553,7 @@ try {
 
     // Check for duplicate ID number, email, or username.
     $duplicate = $pdo->prepare(
-        'SELECT id_number FROM users
+        'SELECT id_number, email, username FROM users
          WHERE id_number = :id_number
             OR email = :email
             OR username = :username
@@ -387,10 +566,15 @@ try {
         'username' => $username
     ]);
 
-    if ($duplicate->fetchColumn()) {
-        registration_fail(
-            'That ID number, email, or username is already registered.'
-        );
+    $existingAccount = $duplicate->fetch(PDO::FETCH_ASSOC);
+    if ($existingAccount) {
+        if ($existingAccount['id_number'] === $idNumber) {
+            registration_fail('This ID Number is already registered.', 'id_number');
+        }
+        if (strcasecmp((string) $existingAccount['email'], $email) === 0) {
+            registration_fail('This email is already registered.', 'email');
+        }
+        registration_fail('This username is already registered.', 'username');
     }
 
 
@@ -517,6 +701,13 @@ try {
     // Record registration activity.
     auth_log_event(
         $pdo,
+        'REGISTERED',
+        $username,
+        $idNumber,
+        'A new Treasurer account was saved and is awaiting verification.'
+    );
+    auth_log_event(
+        $pdo,
         'TREASURER_APPLICATION_SUBMITTED',
         $username,
         $idNumber,
@@ -606,6 +797,7 @@ try {
     // Clear old registration form errors.
     unset(
         $_SESSION['registration_error'],
+        $_SESSION['registration_errors'],
         $_SESSION['registration_old']
     );
 

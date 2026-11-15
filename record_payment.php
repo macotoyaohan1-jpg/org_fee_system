@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/backend/db.php';
@@ -718,5 +717,6 @@ $formRemarks = $_POST['remarks'] ?? '';
 
 </div>
 
+<?= auth_session_timeout_markup() ?>
 </body>
 </html>

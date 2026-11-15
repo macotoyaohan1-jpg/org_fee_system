@@ -64,15 +64,26 @@ try {
     $_SESSION['otp_resends_remaining'] = $issuedOtp['resends_remaining'];
     $_SESSION['otp_notice'] = 'A new verification code was sent to your registered email address.';
     unset($_SESSION['otp_error'], $_SESSION['otp_resend_seconds']);
+    try {
+        auth_log_event(
+            $pdo,
+            'OTP_SENT',
+            (string) ($_SESSION['pending_login_identifier'] ?? ''),
+            $userId,
+            'Login verification OTP resent.'
+        );
+    } catch (PDOException $error) {
+        error_log('Unable to log resent login OTP: ' . $error->getMessage());
+    }
 } catch (AuthOtpThrottleException $error) {
     $_SESSION['otp_error'] = $error->getMessage();
     $_SESSION['otp_resend_seconds'] = $error->retryAfter;
     $_SESSION['otp_resends_remaining'] = $error->resendsRemaining;
-} catch (RuntimeException $error) {
-    error_log('Unable to resend login OTP: ' . $error->getMessage());
-    $_SESSION['otp_error'] = 'The verification code could not be sent. Please try again.';
 } catch (PDOException $error) {
     error_log('Login OTP resend database operation failed: ' . $error->getMessage());
+    $_SESSION['otp_error'] = 'The verification code could not be sent. Please try again.';
+} catch (RuntimeException $error) {
+    error_log('Unable to resend login OTP: ' . $error->getMessage());
     $_SESSION['otp_error'] = 'The verification code could not be sent. Please try again.';
 }
 

@@ -21,11 +21,19 @@ document.addEventListener("DOMContentLoaded", function () {
     const loginError = document.getElementById("loginError");
     const forgotPasswordAction = document.getElementById("forgotPasswordAction");
     const loginIdentifier = document.getElementById("username");
+    const registrationLink = document.getElementById("registrationLink");
 
     if (forgotPasswordAction && loginIdentifier) {
-        const failedEmail = (forgotPasswordAction.dataset.attemptIdentifier || "").trim().toLowerCase();
+        const failedIdentifier = (forgotPasswordAction.dataset.attemptIdentifier || "").trim().toLowerCase();
         loginIdentifier.addEventListener("input", function () {
-            forgotPasswordAction.hidden = loginIdentifier.value.trim().toLowerCase() !== failedEmail;
+            forgotPasswordAction.hidden =
+                loginIdentifier.value.trim().toLowerCase() !== failedIdentifier;
+        });
+    }
+
+    if (registrationLink && registrationLink.getAttribute("aria-disabled") === "true") {
+        registrationLink.addEventListener("click", function (event) {
+            event.preventDefault();
         });
     }
 
@@ -173,6 +181,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     lockoutStatus.hidden = true;
                     loginButton.disabled = false;
+
+                    if (registrationLink) {
+                        registrationLink.removeAttribute("aria-disabled");
+                        registrationLink.removeAttribute("tabindex");
+                        registrationLink.href = "register.php";
+                    }
 
                 }
 

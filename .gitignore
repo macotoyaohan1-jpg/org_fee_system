@@ -1,0 +1,14 @@
+# Private configuration and secrets
+/config.php
+/config.local.php
+/org_fee_config.php
+/.env
+*.key
+
+# Composer dependencies
+/vendor/
+
+# Error logs and temporary files
+*.log
+error_log
+*.tmp

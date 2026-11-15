@@ -1,7 +1,7 @@
 <?php
 
-// Start the session to store the CAPTCHA answer.
-session_start();
+require_once __DIR__ . '/backend/auth_common.php';
+auth_start_session();
 
 // Check if PHP GD is available.
 if (!extension_loaded('gd')) {

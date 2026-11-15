@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/backend/db.php';
@@ -663,5 +662,6 @@ foreach ($members as $member) {
 
 </div>
 
+<?= auth_session_timeout_markup() ?>
 </body>
 </html>

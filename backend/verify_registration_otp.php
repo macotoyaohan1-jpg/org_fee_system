@@ -1,4 +1,3 @@
-
 <?php
 
 // Allow POST requests only.
@@ -256,6 +255,13 @@ try {
             $user['username'],
             $userId,
             'Registration email successfully verified.'
+        );
+        auth_log_event(
+            $pdo,
+            'ACCOUNT_VERIFIED',
+            $user['username'],
+            $userId,
+            'Registration OTP accepted and the email address was verified.'
         );
 
     } catch (Throwable $logError) {

@@ -95,8 +95,20 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('failedLogins').textContent =
             summary.failed_logins ?? 0;
 
+        document.getElementById('lockedAccounts').textContent =
+            summary.locked_accounts ?? 0;
+
         document.getElementById('activeIpBlocks').textContent =
             summary.active_ip_blocks ?? 0;
+
+        document.getElementById('otpsSent').textContent =
+            summary.otps_sent ?? 0;
+
+        document.getElementById('otpsFailed').textContent =
+            summary.otps_failed ?? 0;
+
+        document.getElementById('alertEmailsSent').textContent =
+            summary.alert_emails_sent ?? 0;
 
         document.getElementById('securityFlags').textContent =
             summary.security_flags ?? 0;
@@ -128,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         failedLoginChart = new Chart(canvas, {
 
-            type: 'line',
+            type: 'bar',
 
             data: {
 
@@ -139,17 +151,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     data: chartData.counts ?? [],
 
+                    backgroundColor: 'rgba(118, 96, 181, 0.75)',
+
                     borderColor: '#7660b5',
 
-                    backgroundColor: 'rgba(118, 96, 181, 0.12)',
-
-                    borderWidth: 2,
-
-                    fill: true,
-
-                    tension: 0.3,
-
-                    pointRadius: 3
+                    borderWidth: 1
                 }]
 
             },

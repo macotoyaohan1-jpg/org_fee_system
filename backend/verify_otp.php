@@ -51,6 +51,13 @@ try {
             );
             $expire->execute(['otp_id' => $otpId]);
         }
+        auth_log_event(
+            $pdo,
+            'OTP_FAILED',
+            (string) ($_SESSION['pending_login_identifier'] ?? ''),
+            $userId,
+            'Login verification code was missing, expired, or exhausted.'
+        );
         $pdo->commit();
         auth_clear_pending_otp();
         $_SESSION['login_error'] = 'Your verification code expired. Sign in again to request a new code.';
@@ -74,6 +81,13 @@ try {
             'exhausted' => $newAttempts >= 3 ? 1 : 0,
             'otp_id' => $otpId
         ]);
+        auth_log_event(
+            $pdo,
+            'OTP_FAILED',
+            (string) ($_SESSION['pending_login_identifier'] ?? ''),
+            $userId,
+            'Incorrect login verification code. Attempt ' . $newAttempts . ' of 3.'
+        );
         $pdo->commit();
 
         if ($newAttempts >= 3) {
@@ -156,13 +170,13 @@ if ($user['account_status'] !== 'ACTIVE') {
 if ($user['role'] === 'ADMIN') {
     unset(
         $_SESSION['login_failed_attempts'],
-        $_SESSION['login_forgot_email'],
-        $_SESSION['login_forgot_attempts'],
-        $_SESSION['login_forgot_failure_times']
+        $_SESSION['login_forgot_identifier'],
+        $_SESSION['login_forgot_attempts']
     );
     $_SESSION['user_id'] = $user['id_number'];
     $_SESSION['user_role'] = $user['role'];
     $_SESSION['approval_status'] = $user['approval_status'];
+    $_SESSION['last_activity_at'] = time();
     auth_redirect('../admin_dashboard.php');
 }
 
@@ -172,13 +186,13 @@ if (
 ) {
     unset(
         $_SESSION['login_failed_attempts'],
-        $_SESSION['login_forgot_email'],
-        $_SESSION['login_forgot_attempts'],
-        $_SESSION['login_forgot_failure_times']
+        $_SESSION['login_forgot_identifier'],
+        $_SESSION['login_forgot_attempts']
     );
     $_SESSION['user_id'] = $user['id_number'];
     $_SESSION['user_role'] = $user['role'];
     $_SESSION['approval_status'] = $user['approval_status'];
+    $_SESSION['last_activity_at'] = time();
 
     if ($user['approval_status'] === 'APPROVED') {
         auth_redirect('../treasurer_dashboard.php');

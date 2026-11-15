@@ -1,4 +1,3 @@
-
 <?php
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -7,6 +6,7 @@ header('Pragma: no-cache');
 require_once __DIR__ . '/backend/db.php';
 require_once __DIR__ . '/backend/auth_guard.php';
 require_once __DIR__ . '/backend/encryption.php';
+require_once __DIR__ . '/backend/otp_service.php';
 
 auth_start_session();
 
@@ -164,8 +164,12 @@ if (
         $passwordChangeError = 'Please complete all password fields.';
     } elseif ($newPassword !== $confirmPassword) {
         $passwordChangeError = 'The new passwords do not match.';
-    } elseif (strlen($newPassword) < 8 || strlen($newPassword) > 64) {
-        $passwordChangeError = 'Password must be between 8 and 64 characters.';
+    } elseif (
+        strlen($newPassword) < AUTH_PASSWORD_MIN_LENGTH
+        || strlen($newPassword) > 64
+    ) {
+        $passwordChangeError = 'Password must be between '
+            . AUTH_PASSWORD_MIN_LENGTH . ' and 64 characters.';
     } else {
         $passwordScore = 0;
         $passwordScore += strlen($newPassword) >= 8 ? 1 : 0;
@@ -184,7 +188,7 @@ if (
                 $pdo->beginTransaction();
 
                 $passwordStatement = $pdo->prepare(
-                    "SELECT password_hash
+                    "SELECT password_hash, email, username
                      FROM users
                      WHERE id_number = :user_id
                        AND role = 'TREASURER'
@@ -195,14 +199,15 @@ if (
                 $passwordStatement->execute([
                     'user_id' => $user['id_number']
                 ]);
-                $currentAccountHash = $passwordStatement->fetchColumn();
+                $currentAccount = $passwordStatement->fetch(PDO::FETCH_ASSOC);
 
                 if (
-                    !is_string($currentAccountHash) ||
-                    !password_verify($currentPassword, $currentAccountHash)
+                    !$currentAccount
+                    || !is_string($currentAccount['password_hash'])
+                    || !password_verify($currentPassword, $currentAccount['password_hash'])
                 ) {
                     $passwordChangeError = 'Your current password is incorrect.';
-                } elseif (password_verify($newPassword, $currentAccountHash)) {
+                } elseif (password_verify($newPassword, $currentAccount['password_hash'])) {
                     $passwordChangeError = 'Choose a password different from your current password.';
                 } else {
                     $passwordHistoryStatement = $pdo->prepare(
@@ -249,21 +254,42 @@ if (
                                 'password_hash' => $newPasswordHash
                             ]);
 
+                            auth_log_event(
+                                $pdo,
+                                'PASSWORD_CHANGED',
+                                (string) $currentAccount['username'],
+                                (string) $user['id_number'],
+                                'Treasurer changed their password from dashboard account settings.'
+                            );
                             $pdo->commit();
 
                             $passwordChangeSuccess = 'Your password has been changed.';
+                            $alertSent = false;
+                            try {
+                                auth_send_password_changed_email(
+                                    (string) $currentAccount['email'],
+                                    (string) ($_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN'),
+                                    (string) ($_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN')
+                                );
+                                $alertSent = true;
+                            } catch (RuntimeException $exception) {
+                                error_log('Password change alert email failed: ' . $exception->getMessage());
+                                $passwordChangeSuccess =
+                                    'Your password has been changed, but the alert email could not be sent.';
+                            }
+
                             try {
                                 auth_log_event(
                                     $pdo,
-                                    'ACCOUNT_PASSWORD_CHANGED',
-                                    null,
-                                    $user['id_number'],
-                                    'Treasurer changed their password from dashboard account settings.'
+                                    $alertSent ? 'ALERT_EMAIL_SENT' : 'ALERT_EMAIL_FAILED',
+                                    (string) $currentAccount['username'],
+                                    (string) $user['id_number'],
+                                    $alertSent
+                                        ? 'Password change alert email sent.'
+                                        : 'Password change alert email delivery failed.'
                                 );
                             } catch (PDOException $exception) {
-                                error_log('Password change activity logging error: ' . $exception->getMessage());
-                                $passwordChangeSuccess =
-                                    'Your password has been changed, but the activity log could not be saved. Please contact an administrator.';
+                                error_log('Password change alert logging error: ' . $exception->getMessage());
                             }
 
                             $_SESSION['password_change_success'] = $passwordChangeSuccess;
@@ -2675,6 +2701,9 @@ if ($canManageOrganization && $currentView === 'payment-history') {
                                     autocomplete="new-password"
                                     required
                                 >
+                                <small id="treasurerPasswordStrength" aria-live="polite">
+                                    Password strength
+                                </small>
                             </div>
 
                             <div>
@@ -2691,7 +2720,11 @@ if ($canManageOrganization && $currentView === 'payment-history') {
                             </div>
 
                             <div class="feature-actions">
-                                <button type="submit" class="feature-button">
+                                <button
+                                    type="submit"
+                                    class="feature-button"
+                                    id="treasurerPasswordSubmit"
+                                >
                                     Change Password
                                 </button>
                             </div>
@@ -4627,6 +4660,26 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
+const treasurerNewPassword = document.getElementById('new_password');
+const treasurerPasswordStrength = document.getElementById('treasurerPasswordStrength');
+const treasurerPasswordSubmit = document.getElementById('treasurerPasswordSubmit');
+if (treasurerNewPassword && treasurerPasswordStrength && treasurerPasswordSubmit) {
+    treasurerNewPassword.addEventListener('input', function () {
+        let score = 0;
+        score += treasurerNewPassword.value.length >= <?= AUTH_PASSWORD_MIN_LENGTH ?> ? 1 : 0;
+        score += /[a-z]/.test(treasurerNewPassword.value)
+            && /[A-Z]/.test(treasurerNewPassword.value) ? 1 : 0;
+        score += /[0-9]/.test(treasurerNewPassword.value) ? 1 : 0;
+        score += /[^A-Za-z0-9]/.test(treasurerNewPassword.value) ? 1 : 0;
+        score += treasurerNewPassword.value.length >= 12 ? 1 : 0;
+        treasurerPasswordStrength.textContent = treasurerNewPassword.value.length === 0
+            ? 'Password strength'
+            : (score <= 2 ? 'Weak' : (score <= 3 ? 'Medium' : 'Strong'));
+        treasurerPasswordSubmit.disabled = score <= 2;
+    });
+    treasurerNewPassword.dispatchEvent(new Event('input'));
+}
+
 // Keep the fee form open when validation fails.
 <?php if ($feeError !== ''): ?>
 document.addEventListener('DOMContentLoaded', function () {
@@ -4646,5 +4699,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </script>
 
+<?= auth_session_timeout_markup() ?>
 </body>
 </html>

@@ -1,10 +1,9 @@
 <?php
 
-session_start();
+require_once __DIR__ . '/backend/auth_common.php';
+auth_start_session();
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
-
-require_once __DIR__ . '/backend/db.php';
 
 // Create a CSRF token for this form.
 if (empty($_SESSION['csrf_token'])) {
@@ -13,8 +12,13 @@ if (empty($_SESSION['csrf_token'])) {
 
 $csrf = $_SESSION['csrf_token'];
 $registrationError = $_SESSION['registration_error'] ?? '';
+$registrationErrors = $_SESSION['registration_errors'] ?? [];
+if (!is_array($registrationErrors)) {
+    $registrationErrors = [];
+}
 $registrationOld = $_SESSION['registration_old'] ?? [];
 unset($_SESSION['registration_error']);
+unset($_SESSION['registration_errors']);
 unset($_SESSION['registration_old']);
 $oldValue = static function (string $key) use ($registrationOld): string {
     return htmlspecialchars(
@@ -31,6 +35,7 @@ $oldQuestions = is_array($registrationOld['security_questions'] ?? null)
 $statement = $pdo->query("
     SELECT question_id, question_text
     FROM security_question_bank
+    WHERE question_id IN (1, 4, 6)
     ORDER BY question_id
 ");
 
@@ -108,7 +113,12 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
 
             <form action="backend/register_process.php"
                   method="POST"
-                  id="registerForm">
+                  id="registerForm"
+                  data-registration-errors="<?= htmlspecialchars(
+                      json_encode($registrationErrors, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP),
+                      ENT_QUOTES,
+                      'UTF-8'
+                  ) ?>">
 
                 <!-- CSRF Protection -->
                 <input type="hidden"
@@ -140,8 +150,8 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="id_number"
                            name="id_number"
                            value="<?= $oldValue('id_number') ?>"
-                           placeholder="###-#####"
-                           pattern="[0-9]{3}-[0-9]{5}"
+                           placeholder="xxxx-xxxx"
+                           pattern="[0-9]{4}-[0-9]{4}"
                            maxlength="9"
                            required>
 
@@ -158,6 +168,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="first_name"
                            name="first_name"
                            value="<?= $oldValue('first_name') ?>"
+                           minlength="2"
+                           maxlength="28"
+                           pattern="[A-Z][a-z]+( [A-Z][a-z]+)*"
                            required>
 
                     <small class="error-message" id="first_nameError"></small>
@@ -174,7 +187,10 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                     <input type="text"
                            id="middle_name"
                            name="middle_name"
-                           value="<?= $oldValue('middle_name') ?>">
+                           value="<?= $oldValue('middle_name') ?>"
+                           minlength="2"
+                           maxlength="28"
+                           pattern="[A-Z][a-z]+( [A-Z][a-z]+)*">
 
                     <small class="error-message" id="middle_nameError"></small>
 
@@ -189,6 +205,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="family_name"
                            name="family_name"
                            value="<?= $oldValue('family_name') ?>"
+                           minlength="2"
+                           maxlength="28"
+                           pattern="[A-Z][a-z]+( [A-Z][a-z]+)*"
                            required>
 
                     <small class="error-message" id="family_nameError"></small>
@@ -220,7 +239,8 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="other_extension"
                            name="other_extension"
                            value="<?= $oldValue('other_extension') ?>"
-                           placeholder="Example: II">
+                           placeholder="Example: II"
+                           maxlength="10">
 
                 </div>
 
@@ -267,6 +287,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="street"
                            name="street"
                            value="<?= $oldValue('street') ?>"
+                           minlength="3"
+                           maxlength="50"
+                           pattern="[A-Za-z0-9]+( [A-Za-z0-9]+)*"
                            required>
 
                 </div>
@@ -280,6 +303,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="barangay"
                            name="barangay"
                            value="<?= $oldValue('barangay') ?>"
+                           minlength="2"
+                           maxlength="50"
+                           pattern="[A-Z][a-z]*( [A-Z][a-z]*)*"
                            required>
 
                 </div>
@@ -293,6 +319,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="city"
                            name="city"
                            value="<?= $oldValue('city') ?>"
+                           minlength="2"
+                           maxlength="50"
+                           pattern="[A-Z][a-z]*( [A-Z][a-z]*)*"
                            required>
 
                 </div>
@@ -306,6 +335,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="province"
                            name="province"
                            value="<?= $oldValue('province') ?>"
+                           minlength="2"
+                           maxlength="50"
+                           pattern="[A-Z][a-z]*( [A-Z][a-z]*)*"
                            required>
 
                 </div>
@@ -319,6 +351,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="country"
                            name="country"
                            value="<?= $oldValue('country') !== '' ? $oldValue('country') : 'Philippines' ?>"
+                           minlength="2"
+                           maxlength="50"
+                           pattern="[A-Z][a-z]*( [A-Z][a-z]*)*"
                            required>
 
                 </div>
@@ -446,9 +481,12 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            id="username"
                            name="username"
                            value="<?= $oldValue('username') ?>"
+                           minlength="8"
+                           maxlength="19"
+                           pattern="[A-Za-z][A-Za-z0-9]{7,18}"
                            required>
 
-                    <small id="usernameFeedback"></small>
+                    <small id="usernameFeedback" aria-live="polite"></small>
 
                 </div>
 
@@ -461,6 +499,7 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                         <input type="password"
                                id="password"
                                name="password"
+                               minlength="8"
                                maxlength="64"
                                required>
                         <button type="button"
@@ -498,6 +537,7 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                         <input type="password"
                                id="confirm_password"
                                name="confirm_password"
+                               minlength="8"
                                maxlength="64"
                                required>
                         <button type="button"
@@ -563,6 +603,7 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                                name="security_answers[]"
                                minlength="2"
                                maxlength="50"
+                               pattern="[A-Za-z]+( [A-Za-z]+)*"
                                required>
 
                     </div>
@@ -585,7 +626,9 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
 
                     <label for="privacy_consent">
 
-                        I have read the Privacy Notice and agree to the
+                        I have read the
+                        <a href="#privacyNotice">Privacy Notice</a>
+                        and agree to the
                         collection and processing of my personal data in
                         accordance with the Data Privacy Act of 2012 (RA 10173).
 
@@ -593,6 +636,26 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
 
                 </div>
 
+                <details id="privacyNotice" class="field">
+                    <summary>Privacy Notice</summary>
+                    <p>
+                        This system collects your identification, contact,
+                        birthdate, address, account, and organization information
+                        to review Treasurer applications, manage organization
+                        membership and fees, and protect accounts.
+                    </p>
+                    <p>
+                        Passwords and security answers are stored as hashes.
+                        Access is restricted by account role, and emergency
+                        contact numbers are encrypted. Information is retained
+                        only as long as needed for organization administration
+                        and any applicable record-retention requirements.
+                    </p>
+                    <p>
+                        For privacy questions, contact the system administrator
+                        or your institution's designated privacy officer.
+                    </p>
+                </details>
 
 
                 <!-- ================================= -->

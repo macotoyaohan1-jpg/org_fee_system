@@ -108,6 +108,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
+    let serverErrorField = null;
+    try {
+        const serverErrors = JSON.parse(registerForm.dataset.registrationErrors || "{}");
+        Object.entries(serverErrors).forEach(function ([fieldId, message]) {
+            const field = document.getElementById(fieldId);
+            if (field && typeof message === "string") {
+                showFieldError(field, message);
+                if (!serverErrorField) {
+                    serverErrorField = field;
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Could not display registration field errors.", error);
+    }
+
 
     function getValidationMessage(field) {
 
@@ -144,11 +160,56 @@ document.addEventListener("DOMContentLoaded", function () {
         if (field.validity.patternMismatch) {
 
             if (field.id === "id_number") {
-                return "Please follow this format: 123-45678.";
+                return "ID Number must follow the format xxxx-xxxx.";
             }
 
             if (field.id === "zip_code") {
                 return "Please enter a valid 4-digit ZIP code.";
+            }
+
+            if (field.id === "username") {
+                return "Username must start with a letter and contain 8-19 letters and numbers only.";
+            }
+
+            if (["first_name", "middle_name", "family_name"].includes(field.id)) {
+                const name = field.value.trim();
+                const label = field.id === "first_name"
+                    ? "First Name"
+                    : (field.id === "middle_name" ? "Middle Name" : "Family Name");
+
+                if (field.validity.tooShort) {
+                    return label + " must be at least 2 characters.";
+                }
+                if (name.includes("  ")) {
+                    return "Double space is not allowed.";
+                }
+                if (/([A-Za-z])\1\1/i.test(name)) {
+                    return "Three consecutive identical letters are not allowed.";
+                }
+                if (/^[A-Z ]+$/.test(name)) {
+                    return "Do not use all capital letters.";
+                }
+                if (/[0-9]/.test(name)) {
+                    return "Numbers are not allowed in " + label + ".";
+                }
+                if (!/^[A-Za-z ]+$/.test(name)) {
+                    return "Special characters are not allowed in " + label + ".";
+                }
+                return field.id === "first_name"
+                    ? "First letter of your name must be capital."
+                    : label + " must use title case.";
+            }
+
+            if (["barangay", "city", "province", "country"].includes(field.id)) {
+                return "Use title-case letters and single spaces only.";
+            }
+
+            if (field.id === "street") {
+                return "Use letters, numbers, and single spaces only.";
+            }
+
+            if (field.id && field.id.startsWith("answer")) {
+                return "Security answers must contain letters and single spaces only.";
             }
 
             if (field.id === "captcha_answer") {
@@ -246,6 +307,70 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     extension.dispatchEvent(new Event("change"));
+
+    const usernameInput = document.getElementById("username");
+    const usernameFeedback = document.getElementById("usernameFeedback");
+    let usernameCheckTimer = null;
+    let usernameCheckSequence = 0;
+
+    usernameInput.addEventListener("input", function () {
+        clearTimeout(usernameCheckTimer);
+        usernameCheckSequence++;
+        const currentSequence = usernameCheckSequence;
+        const value = usernameInput.value.trim();
+
+        usernameFeedback.textContent = "";
+        usernameFeedback.className = "";
+
+        if (value === "") {
+            return;
+        }
+
+        if (!/^[A-Za-z][A-Za-z0-9]{7,18}$/.test(value)) {
+            usernameFeedback.textContent =
+                "Use 8-19 letters and numbers, starting with a letter.";
+            return;
+        }
+
+        usernameFeedback.textContent = "Checking username...";
+        usernameCheckTimer = setTimeout(async function () {
+            const formData = new URLSearchParams({
+                action: "check_username",
+                username: value,
+                csrf_token: registerForm.querySelector('[name="csrf_token"]').value
+            });
+
+            try {
+                const response = await fetch("backend/register_process.php", {
+                    method: "POST",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+                    },
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (currentSequence !== usernameCheckSequence) {
+                    return;
+                }
+
+                usernameFeedback.textContent =
+                    result.message || "Unable to check this username.";
+                usernameFeedback.className = result.available ? "success" : "error";
+            } catch (error) {
+                if (currentSequence === usernameCheckSequence) {
+                    usernameFeedback.textContent =
+                        "Username availability could not be checked. Try again.";
+                    usernameFeedback.className = "error";
+                }
+            }
+        }, 300);
+    });
+
+    document.getElementById("email").addEventListener("blur", function () {
+        this.value = this.value.trim().toLowerCase();
+    });
 
 
     // =========================================
@@ -511,16 +636,34 @@ document.addEventListener("DOMContentLoaded", function () {
         // Security answer validation.
         if (field.id && field.id.startsWith("answer")) {
 
-            const answerPattern = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+            const answerPattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
             if (field.value.trim() && !answerPattern.test(field.value.trim())) {
 
                 field.setCustomValidity(
-                    "Use letters, single spaces, apostrophes, or hyphens only."
+                    "Security answers must contain letters and single spaces only."
                 );
 
             }
 
+        }
+
+        if (
+            ["first_name", "middle_name", "family_name"].includes(field.id) &&
+            field.value.trim() &&
+            /([A-Za-z])\1\1/i.test(field.value.trim())
+        ) {
+            field.setCustomValidity(
+                "Three consecutive identical letters are not allowed."
+            );
+        }
+
+        if (
+            field.id === "other_extension" &&
+            field.value.trim() &&
+            !["I", "II", "III", "IV", "IX", "X"].includes(field.value.trim())
+        ) {
+            field.setCustomValidity("Use I, II, III, IV, IX, or X.");
         }
 
         if (!field.checkValidity()) {
@@ -806,7 +949,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
 
-        showRegistrationStep(0);
+        const errorStepIndex = serverErrorField
+            ? registrationSteps.findIndex(function (step) {
+                return step.contains(serverErrorField);
+            })
+            : -1;
+        showRegistrationStep(errorStepIndex >= 0 ? errorStepIndex : 0);
+
+        if (serverErrorField) {
+            serverErrorField.focus();
+        }
 
     } else {
 

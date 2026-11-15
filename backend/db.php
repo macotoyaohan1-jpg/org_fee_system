@@ -1,5 +1,11 @@
-
 <?php
+
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+ini_set('error_log', 'C:/xampp/org_fee_system_errors.log');
+
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
 
 // Load the database configuration file.
 $config = require 'C:/xampp/org_fee_config.php';
@@ -34,7 +40,8 @@ try {
         false
     );
 
-}   catch (PDOException $e) {
-
-    exit('Database Error: ' . $e->getMessage());
+} catch (PDOException $e) {
+    error_log('Database connection failed: ' . $e->getMessage());
+    http_response_code(500);
+    exit('The system is temporarily unavailable. Please try again later.');
 }

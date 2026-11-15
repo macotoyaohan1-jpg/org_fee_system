@@ -1,4 +1,3 @@
-
 <?php
 
 // Return JSON instead of an HTML page.
@@ -42,6 +41,15 @@ try {
     $user = $userStatement->fetch(PDO::FETCH_ASSOC);
 
     if (!$user || $user['account_status'] !== 'ACTIVE' || $user['role'] !== 'ADMIN') {
+        if ($user && $user['account_status'] === 'ACTIVE') {
+            auth_log_event(
+                $pdo,
+                'ADMIN_ACCESS_DENIED',
+                null,
+                $userId,
+                'A non-admin account requested administrator dashboard data.'
+            );
+        }
         http_response_code(403);
         echo json_encode([
             'success' => false,

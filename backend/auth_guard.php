@@ -53,6 +53,13 @@ function auth_require_admin(PDO $pdo): array
     $user = auth_current_user($pdo);
 
     if ($user['role'] !== 'ADMIN') {
+        auth_log_event(
+            $pdo,
+            'ADMIN_ACCESS_DENIED',
+            null,
+            (string) $user['id_number'],
+            'A non-admin account attempted to open an administrator-only page.'
+        );
         auth_redirect('access_denied.php');
     }
 

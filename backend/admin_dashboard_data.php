@@ -1,4 +1,3 @@
-
 <?php
 
 // Load the existing Admin authentication system.
@@ -43,11 +42,42 @@ function admin_dashboard_get_summary(PDO $pdo): array
 
     $securityFlags = (int) $statement->fetchColumn();
 
+    // Count accounts whose progressive lockout is still active.
+    $userIdStatement = $pdo->query("
+        SELECT DISTINCT user_id
+        FROM login_attempts
+        WHERE user_id IS NOT NULL
+          AND attempted_at >= DATE_SUB(NOW(), INTERVAL 180 SECOND)
+    ");
+    $lockedAccounts = 0;
+
+    foreach ($userIdStatement->fetchAll(PDO::FETCH_COLUMN) as $userId) {
+        $history = auth_failure_history($pdo, (string) $userId, '');
+        if (auth_lockout_state($history)['seconds'] > 0) {
+            $lockedAccounts++;
+        }
+    }
+
+    $activityCount = static function (string $eventType) use ($pdo): int {
+        $activityStatement = $pdo->prepare(
+            'SELECT COUNT(*)
+             FROM activity_logs
+             WHERE event_type = :event_type
+               AND DATE(created_at) = CURDATE()'
+        );
+        $activityStatement->execute(['event_type' => $eventType]);
+        return (int) $activityStatement->fetchColumn();
+    };
+
     return [
         'total_attempts' => (int) ($summary['total_attempts'] ?? 0),
         'successful_logins' => (int) ($summary['successful_logins'] ?? 0),
         'failed_logins' => (int) ($summary['failed_logins'] ?? 0),
+        'locked_accounts' => $lockedAccounts,
         'active_ip_blocks' => $activeBlocks,
+        'otps_sent' => $activityCount('OTP_SENT'),
+        'otps_failed' => $activityCount('OTP_FAILED'),
+        'alert_emails_sent' => $activityCount('ALERT_EMAIL_SENT'),
         'security_flags' => $securityFlags
     ];
 }

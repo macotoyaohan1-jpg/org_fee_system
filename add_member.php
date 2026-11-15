@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/backend/db.php';
@@ -596,5 +595,6 @@ function e($value): string
 
 </main>
 
+<?= auth_session_timeout_markup() ?>
 </body>
 </html>

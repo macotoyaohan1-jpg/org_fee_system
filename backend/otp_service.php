@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/auth_common.php';
@@ -187,8 +186,11 @@ function auth_send_login_otp_email(string $email, string $code): void
     $mailer->CharSet = 'UTF-8';
     $mailer->setFrom($settings['from_address'], $settings['from_name']);
     $mailer->addAddress($email);
-    $mailer->Subject = 'Your login verification code';
-    $mailer->Body = "Your login verification code is {$code}. It expires in 5 minutes.";
+    $mailer->Subject = 'Student Organization Fee System login code';
+    $mailer->Body =
+        "Student Organization Fee System: Your login code is {$code}. "
+        . 'It expires in ' . AUTH_OTP_EXPIRY_MINUTES
+        . ' minutes. If you did not request this code, ignore this email and consider changing your password.';
 
     // Log server replies only. Do not log client commands or credentials.
     $mailer->SMTPDebug = \PHPMailer\PHPMailer\SMTP::DEBUG_SERVER;
@@ -253,8 +255,11 @@ function auth_send_registration_otp_email(string $email, string $code): void
     $mailer->CharSet = 'UTF-8';
     $mailer->setFrom($settings['from_address'], $settings['from_name']);
     $mailer->addAddress($email);
-    $mailer->Subject = 'Verify your email address';
-    $mailer->Body = "Your registration verification code is {$code}. It expires in 5 minutes. Do not share this code with anyone.";
+    $mailer->Subject = 'Student Organization Fee System account verification';
+    $mailer->Body =
+        "Student Organization Fee System: Your account verification code is {$code}. "
+        . 'It expires in ' . AUTH_OTP_EXPIRY_MINUTES
+        . ' minutes. If you did not request this code, ignore this email and consider changing your password.';
 
     try {
         $mailer->send();
@@ -293,8 +298,11 @@ function auth_send_password_reset_otp_email(string $email, string $code): void
     $mailer->setFrom($settings['from_address'], $settings['from_name']);
     $mailer->addAddress($email);
 
-    $mailer->Subject = 'Account password reset code';
-    $mailer->Body = "Your account password reset code is {$code}. It expires in 5 minutes. If you did not request this code, ignore this email.";
+    $mailer->Subject = 'Student Organization Fee System password reset code';
+    $mailer->Body =
+        "Student Organization Fee System: Your password reset code is {$code}. "
+        . 'It expires in ' . AUTH_OTP_EXPIRY_MINUTES
+        . ' minutes. If you did not request this code, ignore this email and consider changing your password.';
 
     try {
         $mailer->send();
@@ -302,6 +310,94 @@ function auth_send_password_reset_otp_email(string $email, string $code): void
         error_log('Account password reset email delivery failed: ' . $error->getMessage());
         throw new RuntimeException('The password reset email could not be sent.');
     }
+}
+
+function auth_send_security_alert_email(
+    string $email,
+    string $subject,
+    string $body
+): void {
+    auth_load_phpmailer();
+    $settings = auth_mail_settings();
+
+    if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        throw new RuntimeException('The account email address is invalid.');
+    }
+
+    $mailer = new PHPMailer(true);
+    $mailer->isSMTP();
+    $mailer->Host = $settings['host'];
+    $mailer->SMTPAuth = true;
+    $mailer->Username = $settings['username'];
+    $mailer->Password = $settings['password'];
+    $mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mailer->Port = $settings['port'];
+    $mailer->CharSet = 'UTF-8';
+    $mailer->setFrom($settings['from_address'], $settings['from_name']);
+    $mailer->addAddress($email);
+    $mailer->Subject = $subject;
+    $mailer->Body = $body;
+
+    try {
+        $mailer->send();
+    } catch (PHPMailerException $error) {
+        error_log('Security alert email delivery failed: ' . $error->getMessage());
+        throw new RuntimeException('The security alert email could not be sent.');
+    }
+}
+
+function auth_send_lockout_alert_email(
+    string $email,
+    int $attempts,
+    string $ipAddress,
+    string $userAgent,
+    int $tier
+): void {
+    $eventTime = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
+    $baseUrl = getenv('ORG_FEE_BASE_URL');
+    if ($baseUrl === false || trim($baseUrl) === '') {
+        $baseUrl = 'http://localhost/org_fee_system';
+    }
+
+    $body = "Student Organization Fee System detected repeated failed sign-in attempts.\n\n"
+        . 'Lockout tier: ' . $tier . "\n"
+        . 'Failed attempts: ' . $attempts . "\n"
+        . 'Date and time (Philippine time): ' . $eventTime->format('Y-m-d H:i:s') . "\n"
+        . 'IP address: ' . $ipAddress . "\n"
+        . 'Browser or device: ' . $userAgent . "\n\n"
+        . 'If this was not you, reset your password now: '
+        . rtrim($baseUrl, '/') . '/forgot_password.php';
+
+    auth_send_security_alert_email(
+        $email,
+        'Failed sign-in attempts on your account',
+        $body
+    );
+}
+
+function auth_send_password_changed_email(
+    string $email,
+    string $ipAddress,
+    string $userAgent
+): void {
+    $eventTime = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
+    $baseUrl = getenv('ORG_FEE_BASE_URL');
+    if ($baseUrl === false || trim($baseUrl) === '') {
+        $baseUrl = 'http://localhost/org_fee_system';
+    }
+
+    $body = "Your Student Organization Fee System password was changed.\n\n"
+        . 'Date and time (Philippine time): ' . $eventTime->format('Y-m-d H:i:s') . "\n"
+        . 'IP address: ' . $ipAddress . "\n"
+        . 'Browser or device: ' . $userAgent . "\n\n"
+        . 'If this was not you, reset your password now: '
+        . rtrim($baseUrl, '/') . '/forgot_password.php';
+
+    auth_send_security_alert_email(
+        $email,
+        'Your password was changed',
+        $body
+    );
 }
 
 
@@ -314,14 +410,14 @@ function auth_send_password_reset_otp_email(string $email, string $code): void
 function auth_issue_login_otp(PDO $pdo, string $userId, string $email, bool $isResend): array
 {
     if ($isResend) {
-        $pendingUserId = $_SESSION['pending_registration_user_id'] ?? null;
+        $pendingUserId = $_SESSION['pending_login_user_id'] ?? null;
 
         if (
             !is_string($pendingUserId) ||
             $pendingUserId !== $userId
         ) {
             throw new RuntimeException(
-                'The registration verification session has expired.'
+                'The login verification session has expired.'
             );
         }
     }
@@ -422,7 +518,8 @@ function auth_issue_login_otp(PDO $pdo, string $userId, string $email, bool $isR
             'INSERT INTO user_otps
                 (user_id, otp_hash, purpose, expires_at, attempts, resend_count)
              VALUES
-                (:user_id, :otp_hash, :purpose, DATE_ADD(NOW(), INTERVAL 5 MINUTE), 0, :resend_count)'
+                (:user_id, :otp_hash, :purpose, DATE_ADD(NOW(), INTERVAL '
+                . AUTH_OTP_EXPIRY_MINUTES . ' MINUTE), 0, :resend_count)'
         );
 
         $insert->execute([
@@ -618,7 +715,8 @@ function auth_issue_registration_otp(
                 (user_id, otp_hash, purpose, expires_at, attempts, resend_count)
              VALUES
                 (:user_id, :otp_hash, :purpose,
-                 DATE_ADD(NOW(), INTERVAL 5 MINUTE), 0, :resend_count)'
+                 DATE_ADD(NOW(), INTERVAL '
+                . AUTH_OTP_EXPIRY_MINUTES . ' MINUTE), 0, :resend_count)'
         );
 
         $insert->execute([

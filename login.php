@@ -1,7 +1,7 @@
-
 <?php
 
-session_start();
+require_once __DIR__ . '/backend/auth_common.php';
+auth_start_session();
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
@@ -16,11 +16,15 @@ $csrf = $_SESSION['csrf_token'];
 $loginError = $_SESSION['login_error'] ?? '';
 $passwordResetSuccess = $_SESSION['password_reset_success'] ?? '';
 $forgotPasswordAttempts = (int) ($_SESSION['login_forgot_attempts'] ?? 0);
-$failedIdentifier = $_SESSION['login_forgot_email'] ?? '';
+$failedIdentifier = $_SESSION['login_forgot_identifier'] ?? '';
 
-$showForgotPassword = $forgotPasswordAttempts >= 3
+if (!is_string($failedIdentifier)) {
+    $failedIdentifier = '';
+}
+
+$showForgotPassword = $forgotPasswordAttempts >= AUTH_FORGOT_PASSWORD_FAILURES
     && is_string($failedIdentifier)
-    && filter_var($failedIdentifier, FILTER_VALIDATE_EMAIL) !== false;
+    && $failedIdentifier !== '';
 
 $lockoutSeconds = max(0, (int) ($_SESSION['login_lockout_seconds'] ?? 0));
 
@@ -95,7 +99,13 @@ unset(
                 Manage student organization membership fees and payments.
             </p>
 
-            <a class="visual-decoration" href="register.php">Register</a>
+            <a
+                class="visual-decoration"
+                id="registrationLink"
+                <?= $lockoutSeconds > 0
+                    ? 'aria-disabled="true" tabindex="-1"'
+                    : 'href="register.php"' ?>
+            >Register</a>
 
         </div>
 
@@ -183,7 +193,7 @@ unset(
                         placeholder="Username or Email"
                         autocomplete="off"
                         maxlength="100"
-                        value=""
+                        value="<?= htmlspecialchars($failedIdentifier, ENT_QUOTES, 'UTF-8') ?>"
                         aria-label="Username or Email"
                         required
                     >
@@ -310,8 +320,11 @@ unset(
 
                     <p class="login-actions" id="forgotPasswordAction">
 
-                        <a href="forgot_password.php">
-                            Forgot your password? Reset it by email
+                        <a
+                            href="forgot_password.php"
+                            data-attempt-identifier="<?= htmlspecialchars($failedIdentifier, ENT_QUOTES, 'UTF-8') ?>"
+                        >
+                                Forgot your password? Reset it with your security question
                         </a>
 
                     </p>

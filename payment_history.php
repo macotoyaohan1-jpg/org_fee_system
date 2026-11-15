@@ -1,4 +1,3 @@
-
 <?php
 
 require_once __DIR__ . '/backend/db.php';
@@ -521,5 +520,6 @@ foreach ($payments as $payment) {
 
 </div>
 
+<?= auth_session_timeout_markup() ?>
 </body>
 </html>

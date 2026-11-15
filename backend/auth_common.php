@@ -6,10 +6,78 @@ if (!isset($pdo) || !$pdo instanceof PDO) {
     throw new RuntimeException('The database connection is unavailable.');
 }
 
+// Seed 58: D1=5 and D2=8.
+const AUTH_USERNAME_MIN_LENGTH = 8;
+const AUTH_USERNAME_MAX_LENGTH = 19;
+const AUTH_PASSWORD_MIN_LENGTH = 8;
+const AUTH_NAME_MAX_LENGTH = 28;
+const AUTH_FORGOT_PASSWORD_FAILURES = 3;
+const AUTH_LOCKOUT_TIER_1_SECONDS = 20;
+const AUTH_LOCKOUT_TIER_2_SECONDS = 40;
+const AUTH_LOCKOUT_TIER_3_SECONDS = 80;
+const AUTH_OTP_EXPIRY_MINUTES = 5;
+const AUTH_IDLE_TIMEOUT_SECONDS = 300;
+const AUTH_IP_BLOCK_THRESHOLD = 16;
+const AUTH_IP_BLOCK_WINDOW_SECONDS = 600;
+const AUTH_IP_BLOCK_SECONDS = 600;
+
 function auth_start_session(): void
 {
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.use_strict_mode', '1');
+
+    $cookie = session_get_cookie_params();
+    session_set_cookie_params([
+        'lifetime' => $cookie['lifetime'],
+        'path' => $cookie['path'],
+        'domain' => $cookie['domain'],
+        'secure' => !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off',
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+
+    session_start();
+
+    $userId = $_SESSION['user_id'] ?? null;
+    if (!is_string($userId) || $userId === '') {
+        return;
+    }
+
+    $now = time();
+    $lastActivity = $_SESSION['last_activity_at'] ?? $now;
+
+    if (
+        is_int($lastActivity) &&
+        $now - $lastActivity >= AUTH_IDLE_TIMEOUT_SECONDS
+    ) {
+        try {
+            auth_log_event(
+                $GLOBALS['pdo'],
+                'SESSION_IDLE_TIMEOUT',
+                null,
+                $userId,
+                'The session ended after five minutes of inactivity.'
+            );
+        } catch (PDOException $error) {
+            error_log('Unable to log idle session timeout: ' . $error->getMessage());
+        }
+
+        $_SESSION = [];
+        session_regenerate_id(true);
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        $_SESSION['login_error'] = 'Your session expired after five minutes of inactivity. Please sign in again.';
+        return;
+    }
+
+    if (basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'admin_dashboard_api.php') {
+        $_SESSION['last_activity_at'] = $now;
     }
 }
 
@@ -19,25 +87,108 @@ function auth_redirect(string $location, int $status = 303): void
     exit;
 }
 
+function auth_session_timeout_markup(): string
+{
+    if (!isset($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+
+    return '<div id="sessionTimeoutWarning" role="alert" hidden '
+        . 'style="position:fixed;right:16px;bottom:16px;z-index:9999;'
+        . 'max-width:360px;padding:14px 18px;background:#fff3cd;color:#493b12;'
+        . 'border:1px solid #e6c95c;border-radius:8px;box-shadow:0 4px 16px #0002;">'
+        . '<span>Your session will end in </span>'
+        . '<strong id="sessionTimeoutCountdown">60</strong>'
+        . '<span> seconds due to inactivity.</span> '
+        . '<button type="button" id="staySignedIn">Stay signed in</button>'
+        . '</div>'
+        . '<script>'
+        . '(function(){'
+        . 'const warning=document.getElementById("sessionTimeoutWarning");'
+        . 'const countdown=document.getElementById("sessionTimeoutCountdown");'
+        . 'const stayButton=document.getElementById("staySignedIn");'
+        . 'if(!warning||!countdown||!stayButton)return;'
+        . 'const csrf=' . json_encode((string) ($_SESSION['csrf_token'] ?? '')) . ';'
+        . 'let idleTimer;let warningTimer;let remaining=60;let lastPing=0;'
+        . 'function redirectToLogin(){window.location.assign("login.php");}'
+        . 'function ping(){'
+        . 'if(Date.now()-lastPing<10000)return Promise.resolve();'
+        . 'lastPing=Date.now();'
+        . 'return fetch("backend/session_activity.php",{method:"POST",'
+        . 'credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded"},'
+        . 'body:new URLSearchParams({csrf_token:csrf})}).then(function(response){'
+        . 'if(response.status===401){redirectToLogin();return;}'
+        . 'if(response.status===403){window.location.reload();return;}'
+        . 'if(!response.ok)throw new Error("Session could not be renewed.");'
+        . '}).catch(function(error){console.error(error.message);});'
+        . '}'
+        . 'function resetTimer(){'
+        . 'window.clearTimeout(idleTimer);window.clearInterval(warningTimer);'
+        . 'warning.hidden=true;remaining=60;countdown.textContent=String(remaining);'
+        . 'idleTimer=window.setTimeout(showWarning,'
+        . (AUTH_IDLE_TIMEOUT_SECONDS - 60) * 1000 . ');'
+        . '}'
+        . 'function showWarning(){'
+        . 'warning.hidden=false;remaining=60;countdown.textContent=String(remaining);'
+        . 'warningTimer=window.setInterval(function(){'
+        . 'remaining--;countdown.textContent=String(remaining);'
+        . 'if(remaining<=0){window.clearInterval(warningTimer);ping().finally(redirectToLogin);}'
+        . '},1000);'
+        . '}'
+        . 'function registerActivity(){resetTimer();ping();}'
+        . '["pointerdown","keydown","scroll","touchstart","mousemove"].forEach(function(eventName){'
+        . 'document.addEventListener(eventName,registerActivity,{passive:true});'
+        . '});'
+        . 'stayButton.addEventListener("click",registerActivity);'
+        . 'resetTimer();'
+        . '})();'
+        . '</script>';
+}
+
 function auth_csrf_is_valid(): bool
 {
     $provided = $_POST['csrf_token'] ?? null;
     $expected = $_SESSION['csrf_token'] ?? null;
 
-    return is_string($provided)
+    $isValid = is_string($provided)
         && is_string($expected)
         && hash_equals($expected, $provided);
+
+    if (!$isValid) {
+        $identifier = $_POST['username'] ?? $_SESSION['pending_login_identifier'] ?? null;
+        $userId = $_SESSION['user_id'] ?? $_SESSION['pending_login_user_id'] ?? null;
+
+        try {
+            auth_log_event(
+                $GLOBALS['pdo'],
+                'CSRF_REJECTED',
+                is_string($identifier) ? substr($identifier, 0, 100) : null,
+                is_string($userId) ? $userId : null,
+                'A submitted form did not contain a valid CSRF token.'
+            );
+        } catch (PDOException $error) {
+            error_log('Unable to log rejected CSRF request: ' . $error->getMessage());
+        }
+    }
+
+    return $isValid;
 }
 
 function auth_flash_login(
     string $message,
     ?int $failures = null,
-    int $lockoutSeconds = 0
+    int $lockoutSeconds = 0,
+    ?string $identifier = null
 ): void {
     $_SESSION['login_error'] = $message;
 
     if ($failures !== null) {
         $_SESSION['login_failed_attempts'] = max(0, $failures);
+        $_SESSION['login_forgot_attempts'] = max(0, $failures);
+    }
+
+    if ($identifier !== null) {
+        $_SESSION['login_forgot_identifier'] = substr($identifier, 0, 100);
     }
 
     $_SESSION['login_lockout_seconds'] = max(0, $lockoutSeconds);
@@ -85,7 +236,7 @@ function auth_failure_history(
                     TIMESTAMPDIFF(SECOND, attempted_at, NOW()) AS age_seconds
              FROM login_attempts
              WHERE user_id IS NULL
-               AND LOWER(username_typed) = :identifier
+               AND LOWER(TRIM(username_typed)) = :identifier
              ORDER BY attempt_id DESC
              LIMIT 100'
         );
@@ -112,7 +263,7 @@ function auth_lockout_state(array $failureHistory): array
 {
     $failureCount = count($failureHistory);
 
-    // No lockout before 3 consecutive failures.
+    // Lockout begins after three consecutive failures.
     if ($failureCount < 3) {
         return [
             'failures' => $failureCount,
@@ -120,17 +271,14 @@ function auth_lockout_state(array $failureHistory): array
         ];
     }
 
-    // Lock for 20 seconds after 3-5 failures, 40 seconds after 6-8,
-    // and 80 seconds after 9 or more failures.
-
     if ($failureCount >= 9) {
-        $duration = 80;
+        $duration = AUTH_LOCKOUT_TIER_3_SECONDS;
         $thresholdIndex = 0;
     } elseif ($failureCount >= 6) {
-        $duration = 40;
+        $duration = AUTH_LOCKOUT_TIER_2_SECONDS;
         $thresholdIndex = $failureCount - 6;
     } else {
-        $duration = 20;
+        $duration = AUTH_LOCKOUT_TIER_1_SECONDS;
         $thresholdIndex = $failureCount - 3;
     }
 
@@ -155,6 +303,39 @@ function auth_ip_block_seconds(PDO $pdo, string $ipAddress): int
     $statement->execute(['ip_address' => $ipAddress]);
 
     return max(0, (int) ($statement->fetchColumn() ?: 0));
+}
+
+function auth_ip_failure_count(PDO $pdo, string $ipAddress): int
+{
+    $statement = $pdo->prepare(
+        'SELECT COUNT(*)
+         FROM login_attempts
+         WHERE ip_address = :ip_address
+           AND success = 0
+           AND attempted_at >= DATE_SUB(NOW(), INTERVAL '
+            . intdiv(AUTH_IP_BLOCK_WINDOW_SECONDS, 60) . ' MINUTE)'
+    );
+
+    $statement->execute(['ip_address' => $ipAddress]);
+
+    return (int) $statement->fetchColumn();
+}
+
+function auth_block_ip(PDO $pdo, string $ipAddress): void
+{
+    $statement = $pdo->prepare(
+        'INSERT INTO ip_blocks (ip_address, reason, blocked_until)
+         VALUES (:ip_address, :reason, DATE_ADD(NOW(), INTERVAL '
+         . AUTH_IP_BLOCK_SECONDS . ' SECOND))
+         ON DUPLICATE KEY UPDATE
+            reason = VALUES(reason),
+            blocked_until = GREATEST(blocked_until, VALUES(blocked_until))'
+    );
+
+    $statement->execute([
+        'ip_address' => $ipAddress,
+        'reason' => 'At least 16 failed sign-in attempts within 10 minutes.'
+    ]);
 }
 
 function auth_find_user(PDO $pdo, string $identifier): ?array

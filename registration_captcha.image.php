@@ -1,9 +1,7 @@
 <?php
 
-// Start the session.
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
+require_once __DIR__ . '/backend/auth_common.php';
+auth_start_session();
 
 // Start output buffering to prevent unwanted output.
 ob_start();

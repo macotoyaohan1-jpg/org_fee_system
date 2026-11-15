@@ -1,4 +1,3 @@
-
 <?php
 
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -9,6 +8,13 @@ require_once __DIR__ . '/backend/auth_guard.php';
 
 // Allow only an authenticated Admin to access this page.
 $user = auth_require_admin($pdo);
+auth_log_event(
+    $pdo,
+    'ADMIN_VIEWED_DASHBOARD',
+    null,
+    (string) $user['id_number'],
+    'The administrator opened the security monitoring dashboard.'
+);
 
 // Create a CSRF token for Admin actions.
 if (empty($_SESSION['csrf_token'])) {
@@ -231,8 +237,28 @@ $escapeHtml = static fn ($value): string => htmlspecialchars(
                     </article>
 
                     <article class="summary-card">
+                        <p>Accounts Locked Now</p>
+                        <h3 id="lockedAccounts">0</h3>
+                    </article>
+
+                    <article class="summary-card">
                         <p>Active IP Blocks</p>
                         <h3 id="activeIpBlocks">0</h3>
+                    </article>
+
+                    <article class="summary-card">
+                        <p>OTPs Sent</p>
+                        <h3 id="otpsSent">0</h3>
+                    </article>
+
+                    <article class="summary-card">
+                        <p>OTP Failures</p>
+                        <h3 id="otpsFailed">0</h3>
+                    </article>
+
+                    <article class="summary-card">
+                        <p>Alert Emails Sent</p>
+                        <h3 id="alertEmailsSent">0</h3>
                     </article>
 
                     <article class="summary-card">
@@ -551,6 +577,8 @@ $escapeHtml = static fn ($value): string => htmlspecialchars(
 
     <!-- Dashboard JavaScript -->
     <script src="frontend/js/admin_dashboard.js?v=11"></script>
+
+    <?= auth_session_timeout_markup() ?>
 
 </body>
 </html>

@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/backend/auth_common.php';
 auth_start_session();
@@ -20,15 +19,23 @@ if (
         auth_redirect('forgot_password.php');
     }
 
-    // Clear pending recovery information and the saved email.
+    // Clear pending recovery information and the saved username.
     unset(
         $_SESSION['pending_password_reset_user_id'],
         $_SESSION['pending_password_reset_otp_id'],
         $_SESSION['pending_password_reset_email'],
+        $_SESSION['pending_password_reset_username'],
+        $_SESSION['pending_password_reset_question_ids'],
+        $_SESSION['password_reset_answer_attempts'],
+        $_SESSION['password_reset_otp_stage'],
+        $_SESSION['password_reset_verified'],
+        $_SESSION['password_reset_verified_at'],
+        $_SESSION['password_reset_resend_seconds'],
+        $_SESSION['password_reset_resends_remaining'],
         $_SESSION['password_reset_notice'],
         $_SESSION['password_reset_error'],
         $_SESSION['password_reset_captcha'],
-        $_SESSION['password_reset_email_input']
+        $_SESSION['password_reset_username_input']
     );
 
     auth_redirect('forgot_password.php');
@@ -36,7 +43,9 @@ if (
 
 $notice = $_SESSION['password_reset_notice'] ?? '';
 $error = $_SESSION['password_reset_error'] ?? '';
-$savedEmail = $_SESSION['password_reset_email_input'] ?? '';
+$savedUsername = $_SESSION['password_reset_username_input']
+    ?? $_SESSION['login_forgot_identifier']
+    ?? '';
 
 unset(
     $_SESSION['password_reset_notice'],
@@ -46,17 +55,48 @@ unset(
 $pendingUserId = $_SESSION['pending_password_reset_user_id'] ?? null;
 $pendingOtpId = $_SESSION['pending_password_reset_otp_id'] ?? null;
 $pendingEmail = $_SESSION['pending_password_reset_email'] ?? null;
+$pendingUsername = $_SESSION['pending_password_reset_username'] ?? null;
+$otpStage = ($_SESSION['password_reset_otp_stage'] ?? false) === true;
+$resendSeconds = max(0, (int) ($_SESSION['password_reset_resend_seconds'] ?? 0));
+$resendsRemaining = max(0, (int) ($_SESSION['password_reset_resends_remaining'] ?? 3));
+$verifiedAt = $_SESSION['password_reset_verified_at'] ?? null;
+$passwordResetVerified = ($_SESSION['password_reset_verified'] ?? false) === true
+    && is_int($verifiedAt)
+    && time() - $verifiedAt <= AUTH_OTP_EXPIRY_MINUTES * 60;
 
-$resetPending = is_string($pendingUserId)
+$resetPending = $otpStage
+    && $passwordResetVerified
+    && is_string($pendingUserId)
     && trim($pendingUserId) !== ''
     && is_string($pendingOtpId)
     && ctype_digit($pendingOtpId)
     && is_string($pendingEmail)
     && filter_var($pendingEmail, FILTER_VALIDATE_EMAIL) !== false;
 
+$questionStage = !$otpStage
+    && is_string($pendingUsername)
+    && trim($pendingUsername) !== '';
+
+$seedQuestions = $pdo->query(
+    'SELECT question_id, question_text
+     FROM security_question_bank
+     WHERE question_id IN (1, 4, 6)
+     ORDER BY question_id'
+)->fetchAll(PDO::FETCH_ASSOC);
+$questionIds = $_SESSION['pending_password_reset_question_ids'] ?? [1, 4, 6];
+$questionIds = is_array($questionIds) ? array_map('intval', $questionIds) : [1, 4, 6];
+$seedQuestions = array_values(array_filter(
+    $seedQuestions,
+    static fn (array $question): bool => in_array(
+        (int) $question['question_id'],
+        $questionIds,
+        true
+    )
+));
+
 $maskedEmail = '';
 
-if ($resetPending) {
+if ($otpStage && is_string($pendingEmail) && filter_var($pendingEmail, FILTER_VALIDATE_EMAIL)) {
     $parts = explode('@', $pendingEmail, 2);
 
     $maskedEmail = count($parts) === 2
@@ -145,15 +185,23 @@ if ($resetPending) {
             <h1>
                 <?= $resetPending
                     ? 'Set a new password'
-                    : 'Account password recovery' ?>
+                    : ($otpStage
+                        ? 'Verify recovery code'
+                        : ($questionStage
+                            ? 'Verify your security answer'
+                            : 'Account password recovery')) ?>
             </h1>
 
             <p>
                 <?= $resetPending
-                    ? 'Enter the six-digit code sent to '
-                        . htmlspecialchars($maskedEmail, ENT_QUOTES, 'UTF-8')
-                        . ' and choose a new password.'
-                    : 'Request a one-time code using the email address registered to your account.' ?>
+                    ? 'Choose a new password for your account.'
+                    : ($otpStage
+                        ? 'If your answer matched an active account, a recovery code was sent to '
+                            . htmlspecialchars($maskedEmail, ENT_QUOTES, 'UTF-8')
+                            . '.'
+                        : ($questionStage
+                            ? 'Choose one of your security questions and enter the same answer twice.'
+                            : 'Enter your username and solve the CAPTCHA to begin account recovery.')) ?>
             </p>
 
             <?php if ($error !== ''): ?>
@@ -170,12 +218,11 @@ if ($resetPending) {
 
 
             <?php if ($resetPending): ?>
-
-                <!-- Reset password form -->
                 <form
                     action="backend/reset_admin_password.php"
                     method="post"
                     autocomplete="off"
+                    id="passwordResetForm"
                 >
 
                     <input
@@ -184,9 +231,69 @@ if ($resetPending) {
                         value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>"
                     >
 
-                    <div class="field">
-                        <label for="reset_code">Email code</label>
+                    <input type="hidden" name="action" value="change_password">
 
+                    <div class="field">
+                        <label for="new_password">New password</label>
+
+                        <input
+                            id="new_password"
+                            name="new_password"
+                            type="password"
+                            minlength="<?= AUTH_PASSWORD_MIN_LENGTH ?>"
+                            maxlength="64"
+                            autocomplete="new-password"
+                            required
+                        >
+                        <div class="password-strength">
+                            <span id="resetStrengthText" aria-live="polite">
+                                Password strength
+                            </span>
+                            <div class="strength-bar">
+                                <div id="resetStrengthFill"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="confirm_password">Confirm new password</label>
+
+                        <input
+                            id="confirm_password"
+                            name="confirm_password"
+                            type="password"
+                            minlength="<?= AUTH_PASSWORD_MIN_LENGTH ?>"
+                            maxlength="64"
+                            autocomplete="new-password"
+                            required
+                        >
+                    </div>
+
+                    <button
+                        class="primary-button"
+                        type="submit"
+                        id="resetPasswordButton"
+                    >
+                        Change password
+                    </button>
+
+                </form>
+
+            <?php elseif ($otpStage): ?>
+                <form
+                    action="backend/reset_admin_password.php"
+                    method="post"
+                    autocomplete="off"
+                >
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>"
+                    >
+                    <input type="hidden" name="action" value="verify_otp">
+
+                    <div class="field">
+                        <label for="reset_code">Six-digit recovery code</label>
                         <input
                             id="reset_code"
                             name="reset_code"
@@ -199,42 +306,11 @@ if ($resetPending) {
                         >
                     </div>
 
-                    <div class="field">
-                        <label for="new_password">New password</label>
-
-                        <input
-                            id="new_password"
-                            name="new_password"
-                            type="password"
-                            minlength="8"
-                            maxlength="64"
-                            autocomplete="new-password"
-                            required
-                        >
-                    </div>
-
-                    <div class="field">
-                        <label for="confirm_password">Confirm new password</label>
-
-                        <input
-                            id="confirm_password"
-                            name="confirm_password"
-                            type="password"
-                            minlength="8"
-                            maxlength="64"
-                            autocomplete="new-password"
-                            required
-                        >
-                    </div>
-
                     <button class="primary-button" type="submit">
-                        Reset password
+                        Verify code
                     </button>
-
                 </form>
 
-
-                <!-- Resend code form -->
                 <form
                     action="backend/request_admin_password_reset.php"
                     method="post"
@@ -252,14 +328,23 @@ if ($resetPending) {
                         value="1"
                     >
 
-                    <button class="secondary-button" type="submit">
+                    <button
+                        class="secondary-button"
+                        type="submit"
+                        id="passwordResetResendButton"
+                        <?= $resendSeconds > 0 || $resendsRemaining === 0 ? 'disabled' : '' ?>
+                    >
                         Resend code
+                        <span id="passwordResetResendCountdown" aria-live="polite"></span>
                     </button>
+                    <small id="passwordResetResendStatus" aria-live="polite">
+                        <?= $resendsRemaining === 0
+                            ? 'No resends are available. Start a new recovery after the 15-minute limit.'
+                            : 'Resends remaining: ' . $resendsRemaining ?>
+                    </small>
 
                 </form>
 
-
-                <!-- Start a new recovery request -->
                 <form method="post" action="forgot_password.php">
 
                     <input
@@ -280,11 +365,65 @@ if ($resetPending) {
 
                 </form>
 
+            <?php elseif ($questionStage): ?>
+                <form
+                    action="backend/request_admin_password_reset.php"
+                    method="post"
+                    autocomplete="off"
+                >
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>"
+                    >
+                    <input type="hidden" name="action" value="answer">
+
+                    <div class="field">
+                        <label for="security_question">Choose your security question</label>
+                        <select id="security_question" name="question_id" required>
+                            <option value="">Select a question</option>
+                            <?php foreach ($seedQuestions as $question): ?>
+                                <option value="<?= (int) $question['question_id'] ?>">
+                                    <?= htmlspecialchars($question['question_text'], ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="security_answer">Your answer</label>
+                        <input
+                            id="security_answer"
+                            name="security_answer"
+                            type="text"
+                            minlength="2"
+                            maxlength="50"
+                            pattern="[A-Za-z]+( [A-Za-z]+)*"
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="confirm_security_answer">Re-enter answer</label>
+                        <input
+                            id="confirm_security_answer"
+                            name="confirm_security_answer"
+                            type="text"
+                            minlength="2"
+                            maxlength="50"
+                            pattern="[A-Za-z]+( [A-Za-z]+)*"
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+
+                    <button class="primary-button" type="submit">
+                        Verify answer
+                    </button>
+                </form>
 
             <?php else: ?>
-
-
-                <!-- Initial password recovery request -->
                 <form
                     action="backend/request_admin_password_reset.php"
                     method="post"
@@ -297,16 +436,18 @@ if ($resetPending) {
                     >
 
                     <div class="field">
-                        <label for="email">Registered email address</label>
+                        <label for="username">Username</label>
 
                         <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            maxlength="100"
-                            autocomplete="email"
+                            id="username"
+                            name="username"
+                            type="text"
+                            minlength="<?= AUTH_USERNAME_MIN_LENGTH ?>"
+                            maxlength="<?= AUTH_USERNAME_MAX_LENGTH ?>"
+                            pattern="[A-Za-z][A-Za-z0-9]{7,18}"
+                            autocomplete="username"
                             value="<?= htmlspecialchars(
-                                is_string($savedEmail) ? $savedEmail : '',
+                                is_string($savedUsername) ? $savedUsername : '',
                                 ENT_QUOTES,
                                 'UTF-8'
                             ) ?>"
@@ -353,7 +494,7 @@ if ($resetPending) {
                     </div>
 
                     <button class="primary-button" type="submit">
-                        Send recovery code
+                        Continue
                     </button>
 
                 </form>
@@ -373,6 +514,86 @@ if ($resetPending) {
 
 
 <script>
+const resetPassword = document.getElementById('new_password');
+const resetStrengthText = document.getElementById('resetStrengthText');
+const resetStrengthFill = document.getElementById('resetStrengthFill');
+const resetPasswordButton = document.getElementById('resetPasswordButton');
+const passwordResetForm = document.getElementById('passwordResetForm');
+
+if (resetPassword && resetStrengthText && resetStrengthFill && resetPasswordButton) {
+    resetPassword.addEventListener('input', function () {
+        resetPassword.setCustomValidity('');
+        let score = 0;
+        score += resetPassword.value.length >= <?= AUTH_PASSWORD_MIN_LENGTH ?> ? 1 : 0;
+        score += /[a-z]/.test(resetPassword.value) && /[A-Z]/.test(resetPassword.value) ? 1 : 0;
+        score += /[0-9]/.test(resetPassword.value) ? 1 : 0;
+        score += /[^A-Za-z0-9]/.test(resetPassword.value) ? 1 : 0;
+        score += resetPassword.value.length >= 12 ? 1 : 0;
+
+        if (resetPassword.value.length === 0) {
+            resetStrengthText.textContent = 'Password strength';
+            resetStrengthFill.style.width = '0%';
+        } else if (score <= 2) {
+            resetStrengthText.textContent = 'Weak';
+            resetStrengthFill.style.width = '33%';
+            resetStrengthFill.style.background = '#dc4c5c';
+        } else if (score <= 3) {
+            resetStrengthText.textContent = 'Medium';
+            resetStrengthFill.style.width = '66%';
+            resetStrengthFill.style.background = '#e6a23c';
+        } else {
+            resetStrengthText.textContent = 'Strong';
+            resetStrengthFill.style.width = '100%';
+            resetStrengthFill.style.background = '#35a66a';
+        }
+
+        resetPasswordButton.disabled = score <= 2;
+    });
+    resetPassword.dispatchEvent(new Event('input'));
+}
+
+if (passwordResetForm) {
+    passwordResetForm.addEventListener('submit', function (event) {
+        if (resetStrengthText && resetStrengthText.textContent === 'Weak') {
+            event.preventDefault();
+            resetPassword.setCustomValidity('Please create a Medium or Strong password.');
+            resetPassword.reportValidity();
+        }
+    });
+}
+
+const passwordResetResendButton = document.getElementById('passwordResetResendButton');
+const passwordResetResendCountdown = document.getElementById('passwordResetResendCountdown');
+const passwordResetResendStatus = document.getElementById('passwordResetResendStatus');
+if (
+    passwordResetResendButton
+    && passwordResetResendCountdown
+    && passwordResetResendStatus
+) {
+    let remainingSeconds = <?= $resendSeconds ?>;
+    const resendsRemaining = <?= $resendsRemaining ?>;
+    let resendTimer = null;
+    const updateResendCountdown = function () {
+        passwordResetResendButton.disabled =
+            remainingSeconds > 0 || resendsRemaining === 0;
+        passwordResetResendCountdown.textContent = remainingSeconds > 0
+            ? ' (' + remainingSeconds + 's)'
+            : '';
+        if (remainingSeconds <= 0) {
+            window.clearInterval(resendTimer);
+            resendTimer = null;
+        }
+    };
+
+    updateResendCountdown();
+    if (remainingSeconds > 0) {
+        resendTimer = window.setInterval(function () {
+            remainingSeconds--;
+            updateResendCountdown();
+        }, 1000);
+    }
+}
+
 function refreshPasswordResetCaptcha() {
 
     const captchaImage = document.getElementById('passwordResetCaptchaImage');
