@@ -11,6 +11,21 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
     }
 
+    // Disable browser popup validation.
+    // We will display our own messages below the fields.
+    registerForm.noValidate = true;
+
+    const registrationError = document.getElementById("registrationError");
+
+    if (registrationError) {
+        const dismissRegistrationError = function () {
+            registrationError.hidden = true;
+        };
+
+        registerForm.addEventListener("input", dismissRegistrationError, { once: true });
+        registerForm.addEventListener("change", dismissRegistrationError, { once: true });
+    }
+
     const birthdate = document.getElementById("birthdate");
     const age = document.getElementById("age");
 
@@ -22,6 +37,145 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const strengthText = document.getElementById("strengthText");
     const strengthFill = document.getElementById("strengthFill");
+
+
+    // =========================================
+    // INLINE VALIDATION MESSAGES
+    // =========================================
+
+    function getErrorElement(field) {
+
+        if (field.id) {
+
+            const existingError = document.getElementById(field.id + "Error");
+
+            if (existingError) {
+                return existingError;
+            }
+
+        }
+
+        const fieldContainer = field.closest(".field");
+
+        if (!fieldContainer) {
+            return null;
+        }
+
+        let error = fieldContainer.querySelector(
+            ".custom-field-error"
+        );
+
+        if (!error) {
+
+            error = document.createElement("small");
+
+            error.className = "error-message custom-field-error";
+            error.setAttribute("role", "alert");
+
+            fieldContainer.appendChild(error);
+
+        }
+
+        return error;
+    }
+
+
+    function showFieldError(field, message) {
+
+        const error = getErrorElement(field);
+
+        field.setAttribute("aria-invalid", "true");
+
+        if (error) {
+            error.textContent = message;
+            error.hidden = false;
+        }
+
+    }
+
+
+    function clearFieldError(field) {
+
+        const error = getErrorElement(field);
+
+        field.removeAttribute("aria-invalid");
+
+        if (error) {
+            error.textContent = "";
+        }
+
+        field.setCustomValidity("");
+
+    }
+
+
+    function getValidationMessage(field) {
+
+        if (field.validity.valueMissing) {
+
+            const label = registerForm.querySelector(
+                'label[for="' + field.id + '"]'
+            );
+
+            let fieldName = label
+                ? label.textContent.replace("*", "").trim()
+                : "This field";
+
+            if (field.type === "checkbox") {
+                return "Please accept the Privacy Notice before continuing.";
+            }
+
+            if (field.tagName === "SELECT") {
+                return "Please select " + fieldName.toLowerCase() + ".";
+            }
+
+            return "Please enter " + fieldName.toLowerCase() + ".";
+        }
+
+        if (field.validity.typeMismatch) {
+
+            if (field.type === "email") {
+                return "Please enter a valid email address.";
+            }
+
+            return "Please enter a valid value.";
+        }
+
+        if (field.validity.patternMismatch) {
+
+            if (field.id === "id_number") {
+                return "Please follow this format: 123-45678.";
+            }
+
+            if (field.id === "zip_code") {
+                return "Please enter a valid 4-digit ZIP code.";
+            }
+
+            if (field.id === "captcha_answer") {
+                return "Please enter the 6-character CAPTCHA code.";
+            }
+
+            return "Please follow the required format.";
+        }
+
+        if (field.validity.tooShort) {
+            return "Please enter at least " + field.minLength + " characters.";
+        }
+
+        if (field.validity.tooLong) {
+            return "Please enter no more than " + field.maxLength + " characters.";
+        }
+
+        if (field.validity.rangeUnderflow || field.validity.rangeOverflow) {
+            return "Please enter a value within the allowed range.";
+        }
+
+        if (field.validity.customError) {
+            return field.validationMessage;
+        }
+
+        return "Please check this field.";
+    }
 
 
     // =========================================
@@ -57,7 +211,13 @@ document.addEventListener("DOMContentLoaded", function () {
         age.value = calculatedAge;
     }
 
-    birthdate.addEventListener("change", calculateAge);
+    birthdate.addEventListener("change", function () {
+        calculateAge();
+        clearFieldError(birthdate);
+        clearFieldError(age);
+    });
+
+    calculateAge();
 
 
     // =========================================
@@ -66,12 +226,82 @@ document.addEventListener("DOMContentLoaded", function () {
 
     extension.addEventListener("change", function () {
 
+        const otherExtension = document.getElementById("other_extension");
+
         if (extension.value === "Other") {
+
             otherExtensionField.hidden = false;
+            otherExtension.required = true;
+
         } else {
+
             otherExtensionField.hidden = true;
-            document.getElementById("other_extension").value = "";
+            otherExtension.required = false;
+            otherExtension.value = "";
+
+            clearFieldError(otherExtension);
+
         }
+
+    });
+
+    extension.dispatchEvent(new Event("change"));
+
+
+    // =========================================
+    // PASSWORD VISIBILITY
+    // =========================================
+
+    registerForm.querySelectorAll(".password-visibility-toggle").forEach(function (toggle) {
+
+        toggle.addEventListener("click", function () {
+
+            const input = toggle.closest(".password-wrapper")?.querySelector("input");
+
+            if (!input) {
+                return;
+            }
+
+            const shouldShowPassword = input.type === "password";
+
+            input.type = shouldShowPassword ? "text" : "password";
+
+            toggle.classList.toggle("is-visible", shouldShowPassword);
+
+            toggle.setAttribute("aria-pressed", String(shouldShowPassword));
+
+            toggle.setAttribute(
+                "aria-label",
+                shouldShowPassword ? "Hide password" : "Show password"
+            );
+
+        });
+
+    });
+
+
+    // =========================================
+    // REGISTRATION CAPTCHA REFRESH
+    // =========================================
+
+    const registrationCaptcha = document.getElementById("registrationCaptcha");
+
+    const refreshRegistrationCaptcha = document.getElementById(
+        "refreshRegistrationCaptcha"
+    );
+
+    const captchaAnswer = document.getElementById("captcha_answer");
+
+    refreshRegistrationCaptcha.addEventListener("click", function () {
+
+        registrationCaptcha.src =
+            "registration_captcha.image.php?refresh=" + Date.now();
+
+        captchaAnswer.value = "";
+
+        clearFieldError(captchaAnswer);
+
+        captchaAnswer.focus();
 
     });
 
@@ -105,9 +335,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (value.length === 0) {
+
             strengthText.textContent = "Password strength";
             strengthFill.style.width = "0%";
+
             return;
+
         }
 
         if (score <= 2) {
@@ -129,10 +362,22 @@ document.addEventListener("DOMContentLoaded", function () {
             strengthFill.style.background = "#35a66a";
 
         }
+
     }
 
+
     password.addEventListener("input", function () {
+
         checkPasswordStrength(password.value);
+
+        clearFieldError(password);
+        clearFieldError(confirmPassword);
+
+    });
+
+
+    confirmPassword.addEventListener("input", function () {
+        clearFieldError(confirmPassword);
     });
 
 
@@ -169,113 +414,417 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
         });
+
     }
 
     questionSelects.forEach(function (select) {
-        select.addEventListener("change", updateQuestionOptions);
-    });
 
+        select.addEventListener("change", function () {
 
-    // =========================================
-    // REGISTRATION VALIDATION
-    // =========================================
+            updateQuestionOptions();
+            clearFieldError(select);
 
-    registerForm.addEventListener("submit", function (event) {
-
-        let valid = true;
-
-        const errorMessages = document.querySelectorAll(".error-message");
-
-        errorMessages.forEach(function (error) {
-            error.textContent = "";
         });
 
-        // Check birthdate and minimum age.
-        if (!birthdate.value || Number(age.value) < 18) {
+    });
 
-            event.preventDefault();
+    updateQuestionOptions();
 
-            alert("You must be at least 18 years old to register.");
 
-            valid = false;
+    // =========================================
+    // VALIDATE ONE FIELD
+    // =========================================
+
+    function validateField(field) {
+
+        clearFieldError(field);
+
+        if (field.disabled || field.closest(".field[hidden]")) {
+            return true;
         }
 
-        // Check future birthdate.
-        if (birthdate.value) {
+        // Age validation.
+        if (field.id === "age") {
+
+            if (!age.value) {
+                field.setCustomValidity("Please enter a valid birthdate.");
+            } else if (Number(age.value) < 18) {
+                field.setCustomValidity("You must be at least 18 years old to register.");
+            }
+
+        }
+
+        // Future birthdate validation.
+        if (field.id === "birthdate" && birthdate.value) {
 
             const selectedDate = new Date(birthdate.value + "T00:00:00");
-            const today = new Date();
 
+            const today = new Date();
             today.setHours(0, 0, 0, 0);
 
             if (selectedDate > today) {
-
-                event.preventDefault();
-
-                alert("Birthdate cannot be in the future.");
-
-                valid = false;
+                field.setCustomValidity("Birthdate cannot be in the future.");
             }
+
         }
 
-        // Check password match.
-        if (password.value !== confirmPassword.value) {
+        // Password strength validation.
+        if (field.id === "password") {
 
-            event.preventDefault();
+            if (
+                strengthText.textContent === "Weak" ||
+                strengthText.textContent === "Password strength"
+            ) {
+                field.setCustomValidity("Please create a Medium or Strong password.");
+            }
 
-            alert("Passwords do not match.");
-
-            valid = false;
         }
 
-        // Weak passwords are not accepted.
-        if (strengthText.textContent === "Weak" ||
-            strengthText.textContent === "Password strength") {
+        // Confirm password validation.
+        if (field.id === "confirm_password") {
 
-            event.preventDefault();
+            if (password.value !== confirmPassword.value) {
+                field.setCustomValidity("Passwords do not match.");
+            }
 
-            alert("Please create a Medium or Strong password.");
-
-            valid = false;
         }
 
-        // Check duplicate security questions.
-        const selectedQuestions = questionSelects.map(function (select) {
-            return select.value;
+        // Security question duplicate validation.
+        if (questionSelects.includes(field)) {
+
+            const selectedValues = questionSelects.map(function (select) {
+                return select.value;
+            });
+
+            if (!field.value) {
+                field.setCustomValidity("Please select a security question.");
+            } else if (
+                selectedValues.filter(function (value) {
+                    return value === field.value;
+                }).length > 1
+            ) {
+                field.setCustomValidity("Please choose a different security question.");
+            }
+
+        }
+
+        // Security answer validation.
+        if (field.id && field.id.startsWith("answer")) {
+
+            const answerPattern = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+
+            if (field.value.trim() && !answerPattern.test(field.value.trim())) {
+
+                field.setCustomValidity(
+                    "Use letters, single spaces, apostrophes, or hyphens only."
+                );
+
+            }
+
+        }
+
+        if (!field.checkValidity()) {
+
+            showFieldError(field, getValidationMessage(field));
+
+            return false;
+
+        }
+
+        return true;
+
+    }
+
+
+    // =========================================
+    // VALIDATE A GROUP OF FIELDS
+    // =========================================
+
+    function validateContainer(container) {
+
+        const fields = Array.from(
+            container.querySelectorAll("input, select, textarea")
+        );
+
+        let firstInvalidField = null;
+
+        fields.forEach(function (field) {
+
+            if (!validateField(field) && !firstInvalidField) {
+                firstInvalidField = field;
+            }
+
         });
 
-        if (new Set(selectedQuestions).size !== 3 ||
-            selectedQuestions.includes("")) {
+        return firstInvalidField;
 
-            event.preventDefault();
+    }
 
-            alert("Please select three different security questions.");
 
-            valid = false;
-        }
+    // Clear messages when the user edits a field.
+    registerForm.addEventListener("input", function (event) {
 
-        // Check security answers.
-        for (let i = 1; i <= 3; i++) {
-
-            const answer = document.getElementById("answer" + i);
-
-            const answerPattern = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
-
-            if (!answerPattern.test(answer.value.trim())) {
-
-                event.preventDefault();
-
-                alert("Security answers must contain letters and single spaces only.");
-
-                valid = false;
-                break;
-            }
-        }
-
-        if (!valid) {
-            return;
+        if (event.target.matches("input, textarea")) {
+            clearFieldError(event.target);
         }
 
     });
+
+    registerForm.addEventListener("change", function (event) {
+
+        if (event.target.matches("input, select, textarea")) {
+            clearFieldError(event.target);
+        }
+
+    });
+
+
+    // =========================================
+    // PROGRESSIVE REGISTRATION STEPS
+    // =========================================
+
+    const stepHeadings = Array.from(
+        registerForm.querySelectorAll(":scope > h2")
+    );
+
+    const originalSubmitButton = registerForm.querySelector(
+        'button[type="submit"]'
+    );
+
+    let currentStepIndex = 0;
+    let registrationSteps = [];
+    let progressItems = [];
+
+    if (stepHeadings.length > 1 && originalSubmitButton) {
+
+        const progress = document.createElement("ol");
+
+        progress.className = "registration-progress";
+        progress.setAttribute("aria-label", "Registration progress");
+
+        const children = Array.from(registerForm.children);
+
+        let activeStep = null;
+
+        children.forEach(function (node) {
+
+            if (node === originalSubmitButton) {
+                return;
+            }
+
+            if (node.tagName === "H2") {
+
+                activeStep = document.createElement("section");
+
+                activeStep.className = "registration-step";
+
+                activeStep.setAttribute(
+                    "aria-labelledby",
+                    "registrationStepTitle" + registrationSteps.length
+                );
+
+                node.id = "registrationStepTitle" + registrationSteps.length;
+
+                activeStep.appendChild(node);
+
+                registrationSteps.push(activeStep);
+
+                return;
+
+            }
+
+            if (activeStep) {
+                activeStep.appendChild(node);
+            }
+
+        });
+
+
+        registrationSteps.forEach(function (step, index) {
+
+            const item = document.createElement("li");
+
+            item.textContent = step.querySelector("h2").textContent;
+            item.dataset.step = String(index);
+
+            progress.appendChild(item);
+
+            progressItems.push(item);
+
+        });
+
+
+        const navigation = document.createElement("div");
+
+        navigation.className = "registration-step-navigation";
+
+        navigation.innerHTML =
+            '<button type="button" class="secondary-button" id="previousRegistrationStep">Back</button>' +
+            '<span class="registration-step-count" id="registrationStepCount"></span>' +
+            '<button type="button" class="primary-button" id="nextRegistrationStep">Continue</button>';
+
+
+        originalSubmitButton.textContent = "Submit Application";
+
+        originalSubmitButton.classList.add(
+            "primary-button",
+            "registration-submit"
+        );
+
+
+        navigation.appendChild(originalSubmitButton);
+
+        registerForm.appendChild(progress);
+
+        registrationSteps.forEach(function (step) {
+            registerForm.appendChild(step);
+        });
+
+        registerForm.appendChild(navigation);
+
+        registerForm.classList.add("is-wizard");
+
+
+        const previousButton = document.getElementById(
+            "previousRegistrationStep"
+        );
+
+        const nextButton = document.getElementById(
+            "nextRegistrationStep"
+        );
+
+        const stepCount = document.getElementById(
+            "registrationStepCount"
+        );
+
+
+        // Show the selected registration step.
+        function showRegistrationStep(index) {
+
+            currentStepIndex = Math.max(
+                0,
+                Math.min(index, registrationSteps.length - 1)
+            );
+
+            registrationSteps.forEach(function (step, stepIndex) {
+
+                step.hidden = stepIndex !== currentStepIndex;
+
+            });
+
+            progressItems.forEach(function (item, stepIndex) {
+
+                item.classList.toggle(
+                    "is-current",
+                    stepIndex === currentStepIndex
+                );
+
+                item.classList.toggle(
+                    "is-complete",
+                    stepIndex < currentStepIndex
+                );
+
+                if (stepIndex === currentStepIndex) {
+                    item.setAttribute("aria-current", "step");
+                } else {
+                    item.removeAttribute("aria-current");
+                }
+
+            });
+
+            previousButton.hidden = currentStepIndex === 0;
+
+            nextButton.hidden =
+                currentStepIndex === registrationSteps.length - 1;
+
+            originalSubmitButton.hidden =
+                currentStepIndex !== registrationSteps.length - 1;
+
+            stepCount.textContent =
+                `Step ${currentStepIndex + 1} of ${registrationSteps.length}`;
+
+            registerForm.querySelector(".form-container")
+                ?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+
+        }
+
+
+        // Continue button.
+        nextButton.addEventListener("click", function () {
+
+            const invalidField = validateContainer(
+                registrationSteps[currentStepIndex]
+            );
+
+            if (invalidField) {
+
+                invalidField.focus();
+
+                return;
+
+            }
+
+            showRegistrationStep(currentStepIndex + 1);
+
+        });
+
+
+        // Back button.
+        previousButton.addEventListener("click", function () {
+
+            showRegistrationStep(currentStepIndex - 1);
+
+        });
+
+
+        // Validate every step before submitting.
+        registerForm.addEventListener("submit", function (event) {
+
+            for (let index = 0; index < registrationSteps.length; index++) {
+
+                const invalidField = validateContainer(
+                    registrationSteps[index]
+                );
+
+                if (invalidField) {
+
+                    event.preventDefault();
+
+                    showRegistrationStep(index);
+
+                    invalidField.focus();
+
+                    return;
+
+                }
+
+            }
+
+        });
+
+
+        showRegistrationStep(0);
+
+    } else {
+
+        // Fallback if the form does not use multiple steps.
+        registerForm.addEventListener("submit", function (event) {
+
+            const invalidField = validateContainer(registerForm);
+
+            if (invalidField) {
+
+                event.preventDefault();
+
+                invalidField.focus();
+
+            }
+
+        });
+
+    }
 
 });
