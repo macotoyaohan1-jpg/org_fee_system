@@ -3316,6 +3316,7 @@ if ($canManageOrganization && $currentView === 'payment-history') {
                                                             <a
                                                                 href="treasurer_dashboard.php?view=payment-monitoring&membership_id=<?= (int) $member['membership_id'] ?>"
                                                                 class="feature-button"
+                                                                aria-label="Record payment for <?= e($member['full_name']) ?>"
                                                             >
                                                                 Record Payment
                                                             </a>
