@@ -107,6 +107,7 @@ try {
         auth_redirect('../login.php');
     }
 
+
     if (
         $user['account_status'] === 'ACTIVE' &&
         (
@@ -123,6 +124,14 @@ try {
             $ipAddress = '0.0.0.0';
         }
         auth_record_login_attempt($pdo, $user['id_number'], $loggedIdentifier, $ipAddress, true);
+
+        auth_log_event(
+            $pdo,
+            'LOGIN_SUCCESS',
+            $loggedIdentifier,
+            $user['id_number'],
+            'Login successful. Email OTP verification completed.'
+        );
     }
 
     $pdo->commit();
@@ -145,7 +154,12 @@ if ($user['account_status'] !== 'ACTIVE') {
 }
 
 if ($user['role'] === 'ADMIN') {
-    unset($_SESSION['login_failed_attempts']);
+    unset(
+        $_SESSION['login_failed_attempts'],
+        $_SESSION['login_forgot_email'],
+        $_SESSION['login_forgot_attempts'],
+        $_SESSION['login_forgot_failure_times']
+    );
     $_SESSION['user_id'] = $user['id_number'];
     $_SESSION['user_role'] = $user['role'];
     $_SESSION['approval_status'] = $user['approval_status'];
@@ -156,7 +170,12 @@ if (
     $user['role'] === 'TREASURER' &&
     in_array($user['approval_status'], ['APPROVED', 'PENDING', 'REJECTED'], true)
 ) {
-    unset($_SESSION['login_failed_attempts']);
+    unset(
+        $_SESSION['login_failed_attempts'],
+        $_SESSION['login_forgot_email'],
+        $_SESSION['login_forgot_attempts'],
+        $_SESSION['login_forgot_failure_times']
+    );
     $_SESSION['user_id'] = $user['id_number'];
     $_SESSION['user_role'] = $user['role'];
     $_SESSION['approval_status'] = $user['approval_status'];

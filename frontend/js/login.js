@@ -19,6 +19,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const captchaImage = document.getElementById("loginCaptchaImage");
     const refreshCaptcha = document.getElementById("refreshCaptcha");
     const loginError = document.getElementById("loginError");
+    const forgotPasswordAction = document.getElementById("forgotPasswordAction");
+    const loginIdentifier = document.getElementById("username");
+
+    if (forgotPasswordAction && loginIdentifier) {
+        const failedEmail = (forgotPasswordAction.dataset.attemptIdentifier || "").trim().toLowerCase();
+        loginIdentifier.addEventListener("input", function () {
+            forgotPasswordAction.hidden = loginIdentifier.value.trim().toLowerCase() !== failedEmail;
+        });
+    }
 
     function refreshCaptchaImage() {
         captcha.value = "";
@@ -36,17 +45,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         togglePassword.addEventListener("click", function () {
 
-            if (password.type === "password") {
-
-                password.type = "text";
-                togglePassword.textContent = "Hide";
-
-            } else {
-
-                password.type = "password";
-                togglePassword.textContent = "Show";
-
-            }
+            const shouldShowPassword = password.type === "password";
+            password.type = shouldShowPassword ? "text" : "password";
+            togglePassword.classList.toggle("is-visible", shouldShowPassword);
+            togglePassword.setAttribute("aria-pressed", String(shouldShowPassword));
+            togglePassword.setAttribute(
+                "aria-label",
+                shouldShowPassword ? "Hide password" : "Show password"
+            );
 
         });
 

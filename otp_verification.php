@@ -119,7 +119,7 @@ if ($challenge && is_string($challenge['email'])) {
                     </div>
                     <button class="primary-button" type="submit">Verify code</button>
                 </form>
-                <form action="backend/send_otp.php" method="POST">
+                <form class="otp-resend-form" action="backend/send_otp.php" method="POST">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
                     <button class="primary-button"
                             id="resendOtpButton"

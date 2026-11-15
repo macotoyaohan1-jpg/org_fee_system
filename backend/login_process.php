@@ -17,6 +17,38 @@ function return_to_login(string $message, ?int $failures = null, int $lockoutSec
     auth_redirect('../login.php');
 }
 
+function login_session_failure_history(string $identifier, bool $recordFailure = false): array
+{
+    if (($_SESSION['login_forgot_email'] ?? null) !== $identifier) {
+        $_SESSION['login_forgot_email'] = $identifier;
+        $_SESSION['login_forgot_attempts'] = 0;
+        $_SESSION['login_forgot_failure_times'] = [];
+    }
+
+    $now = time();
+    $failureTimes = $_SESSION['login_forgot_failure_times'] ?? [];
+    if (!is_array($failureTimes)) {
+        $failureTimes = [];
+    }
+
+    $failureTimes = array_values(array_filter(
+        $failureTimes,
+        static fn ($failedAt): bool => is_int($failedAt) && $failedAt <= $now && ($now - $failedAt) <= 300
+    ));
+
+    if ($recordFailure) {
+        $failureTimes[] = $now;
+    }
+
+    $_SESSION['login_forgot_failure_times'] = $failureTimes;
+    $_SESSION['login_forgot_attempts'] = count($failureTimes);
+
+    return array_map(
+        static fn (int $failedAt): array => ['age_seconds' => max(0, $now - $failedAt)],
+        $failureTimes
+    );
+}
+
 if (!auth_csrf_is_valid()) {
     return_to_login('Your login form expired. Refresh the page and try again.');
 }
@@ -61,6 +93,13 @@ try {
     $ipLockSeconds = auth_ip_block_seconds($pdo, $ipAddress);
     if ($ipLockSeconds > 0) {
         auth_record_login_attempt($pdo, null, $loggedIdentifier, $ipAddress, false);
+        auth_log_event(
+            $pdo,
+            'LOGIN_IP_BLOCKED',
+            $loggedIdentifier,
+            null,
+            'Login attempted from a temporarily blocked IP address.'
+        );
         $history = auth_failure_history($pdo, null, $loggedIdentifier);
         $state = auth_lockout_state($history);
         return_to_login(
@@ -72,10 +111,17 @@ try {
 
     $user = $identifierValid ? auth_find_user($pdo, $identifier) : null;
     $userId = $user['id_number'] ?? null;
-    $history = auth_failure_history($pdo, $userId, $loggedIdentifier);
+    $history = login_session_failure_history($normalizedIdentifier);
     $state = auth_lockout_state($history);
 
     if ($state['seconds'] > 0) {
+        auth_log_event(
+            $pdo,
+            'LOGIN_BLOCKED',
+            $loggedIdentifier,
+            $userId,
+            'Login attempted while the account was temporarily locked.'
+        );
         return_to_login(
             'Too many failed sign-in attempts. Try again when the countdown ends.',
             $state['failures'],
@@ -90,14 +136,36 @@ try {
 
     if (!$credentialsValid) {
         auth_record_login_attempt($pdo, $userId, $loggedIdentifier, $ipAddress, false);
+        auth_log_event(
+            $pdo,
+            'LOGIN_FAILED',
+            $loggedIdentifier,
+            $userId,
+            'Incorrect username or password.'
+        );
         $state = auth_lockout_state(
-            auth_failure_history($pdo, $userId, $loggedIdentifier)
+            login_session_failure_history($normalizedIdentifier, true)
         );
         $message = $state['seconds'] > 0
             ? 'Too many failed sign-in attempts. Try again when the countdown ends.'
             : 'The username or password is incorrect.';
 
         return_to_login($message, $state['failures'], $state['seconds']);
+    }
+
+    unset(
+        $_SESSION['login_forgot_email'],
+        $_SESSION['login_forgot_attempts'],
+        $_SESSION['login_forgot_failure_times']
+    );
+    $_SESSION['login_failed_attempts'] = 0;
+
+    // Prevent users with unverified email addresses from signing in.
+    if (empty($user['email_verified_at'])) {
+        return_to_login(
+            'Please verify your email address before signing in.',
+            $state['failures']
+        );
     }
 
     auth_clear_pending_otp();
@@ -110,8 +178,11 @@ try {
         return_to_login($error->getMessage(), $state['failures']);
     } catch (RuntimeException $error) {
         error_log('Unable to start login OTP challenge: ' . $error->getMessage());
+        $message = $error->getMessage() === 'The verification email could not be sent.'
+            ? 'Your password is correct, but Gmail rejected the mail login. Update the mail.username and mail.password in C:/xampp/org_fee_config.php with the sending Gmail address and its current App Password, then try again.'
+            : 'Sign-in is temporarily unavailable. Please try again later.';
         return_to_login(
-            'Sign-in is temporarily unavailable. Please try again later.',
+            $message,
             $state['failures']
         );
     }
@@ -122,6 +193,14 @@ try {
     $_SESSION['pending_login_identifier'] = $loggedIdentifier;
     $_SESSION['otp_notice'] = 'A verification code was sent to your registered email address.';
     $_SESSION['otp_resends_remaining'] = $issuedOtp['resends_remaining'];
+
+    auth_log_event(
+        $pdo,
+        'LOGIN_OTP_SENT',
+        $loggedIdentifier,
+        $userId,
+        'Password verified. Email OTP verification is pending.'
+    );
 
     auth_redirect('../otp_verification.php');
 } catch (PDOException $error) {
