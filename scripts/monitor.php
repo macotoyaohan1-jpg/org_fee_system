@@ -5,7 +5,7 @@ if (PHP_SAPI !== 'cli') {
     exit('Page Not Found');
 }
 
-require_once __DIR__ . '/../backend/auth_common.php';
+require_once __DIR__ . '/../php/backend/auth_common.php';
 
 $ipFailureThreshold = AUTH_IP_BLOCK_THRESHOLD;
 $ipFailureWindowMinutes = intdiv(AUTH_IP_BLOCK_WINDOW_SECONDS, 60);

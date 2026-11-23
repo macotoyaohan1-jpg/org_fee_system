@@ -5,6 +5,7 @@
 
 return [
     'host' => 'localhost',
+    'port' => 3306,
     'database' => 'fee_db',
     'username' => 'your_database_username',
     'password' => 'your_database_password',

@@ -1,0 +1,18 @@
+RewriteEngine On
+RewriteBase /org_fee_system/
+
+# The monitor only runs from the CLI and must not be exposed over HTTP.
+RewriteRule ^scripts/monitor\.php$ - [F,L,NC]
+RewriteRule ^config\.sample\.php$ - [F,L,NC]
+
+# Keep implementation files under php/ while preserving current public URLs.
+# Direct /php/... requests return to the public route; internal rewrites are not redirected.
+RewriteCond %{THE_REQUEST} \s/+[^\s?]*/php/ [NC]
+RewriteRule ^php/(.*)$ /org_fee_system/$1 [R=302,L,NE]
+
+# Existing backend endpoint URLs continue to work.
+RewriteRule ^backend/(.*)$ php/backend/$1 [L]
+
+# Root entry point and page endpoints are served from php/.
+RewriteRule ^$ php/index.php [L]
+RewriteRule ^([A-Za-z0-9_.-]+\.php)$ php/$1 [L]

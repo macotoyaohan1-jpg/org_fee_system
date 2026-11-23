@@ -1,0 +1,2624 @@
+:root {
+    --forest: #0d1f16;
+    --green: #1c4d2e;
+    --green-light: #5aa06d;
+    --text: #f7fbf5;
+    --muted: rgba(247, 251, 245, 0.74);
+    --border: rgba(230, 242, 225, 0.3);
+    --error: #ffc3bd;
+    --success: #b7e7b0;
+}
+
+@view-transition {
+    navigation: auto;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    font-family: "Poppins", Arial, sans-serif;
+    background:
+        linear-gradient(rgba(161, 194, 159, 0.58), rgba(13, 31, 22, 0.64)),
+        url("../images/campus-background.jpg") center / cover fixed no-repeat;
+}
+
+.auth-container {
+    display: flex;
+    width: min(1100px, 100%);
+    height: min(85vh, 850px);
+    min-height: 580px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 25px 70px rgba(13, 31, 22, 0.38);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+.register-auth-container {
+    flex-direction: row-reverse;
+}
+
+.auth-visual {
+    position: relative;
+    display: flex;
+    width: 42%;
+    flex: 0 0 42%;
+    align-items: center;
+    justify-content: center;
+    padding: 44px;
+    overflow: hidden;
+    background: linear-gradient(145deg, rgba(143, 75, 127, 0.94), rgba(103, 39, 89, 0.92));
+}
+
+.auth-visual::before,
+.auth-visual::after {
+    position: absolute;
+    content: "";
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+}
+
+.auth-visual::before {
+    width: 360px;
+    height: 360px;
+    top: -190px;
+    left: -180px;
+}
+
+.auth-visual::after {
+    width: 300px;
+    height: 300px;
+    right: -170px;
+    bottom: -155px;
+}
+
+.visual-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 390px;
+    text-align: center;
+}
+
+.visual-eyebrow {
+    margin: 0 0 12px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+}
+
+.visual-content h2 {
+    margin: 0 auto 10px;
+    color: white;
+    font-size: clamp(1.6rem, 3vw, 2.15rem);
+    line-height: 1.22;
+}
+
+.visual-content > p:not(.visual-eyebrow) {
+    max-width: 340px;
+    margin: 0 auto;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.82rem;
+    line-height: 1.65;
+}
+
+.visual-circle {
+    position: relative;
+    display: grid;
+    width: 190px;
+    height: 190px;
+    margin: 27px auto 22px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.08);
+}
+
+.visual-circle::before {
+    position: absolute;
+    width: 138px;
+    height: 138px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    content: "";
+}
+
+.visual-circle img {
+    position: relative;
+    z-index: 1;
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.visual-switch-button {
+    display: inline-flex;
+    min-width: 150px;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    padding: 0 24px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 999px;
+    background: transparent;
+    color: white;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.visual-switch-button:hover {
+    transform: translateY(-2px);
+    background: white;
+    color: var(--forest);
+}
+
+.visual-switch-button:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.55);
+    outline-offset: 3px;
+}
+
+.orbit {
+    position: absolute;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+}
+
+.orbit-one {
+    width: 226px;
+    height: 82px;
+    transform: rotate(25deg);
+}
+
+.orbit-two {
+    width: 82px;
+    height: 226px;
+    transform: rotate(-25deg);
+}
+
+.visual-caption {
+    font-size: 0.75rem !important;
+}
+
+.form-panel {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    justify-content: center;
+    padding: 40px;
+    overflow-y: auto;
+    background: rgba(13, 31, 22, 0.72);
+    scrollbar-color: rgba(230, 242, 225, 0.38) transparent;
+    scrollbar-width: thin;
+}
+
+body:has(#loginForm) .auth-visual,
+body:has(#registerForm) .auth-visual {
+    view-transition-name: auth-visual;
+}
+
+body:has(#loginForm) .form-panel,
+body:has(#registerForm) .form-panel {
+    view-transition-name: auth-form;
+}
+
+::view-transition-group(auth-visual),
+::view-transition-group(auth-form) {
+    animation-duration: 600ms;
+    animation-timing-function: ease-in-out;
+}
+
+/* Slide each equal-width panel by one full panel so the swap lands cleanly in the opposite half. */
+@media (min-width: 801px) {
+    html.auth-page-slide-to-register .auth-container:has(#loginForm) > .auth-visual,
+    html.auth-page-slide-to-register .auth-container:has(#loginForm) > .form-panel,
+    html.auth-page-slide-to-login .auth-container:has(#registerForm) > .auth-visual,
+    html.auth-page-slide-to-login .auth-container:has(#registerForm) > .form-panel {
+        transition: transform 600ms ease-in-out;
+        will-change: transform;
+    }
+
+    html.auth-page-slide-to-register .auth-container:has(#loginForm) > .auth-visual {
+        transform: translate3d(100%, 0, 0);
+    }
+
+    html.auth-page-slide-to-register .auth-container:has(#loginForm) > .form-panel {
+        transform: translate3d(-100%, 0, 0);
+    }
+
+    html.auth-page-slide-to-login .auth-container:has(#registerForm) > .auth-visual {
+        transform: translate3d(-100%, 0, 0);
+    }
+
+    html.auth-page-slide-to-login .auth-container:has(#registerForm) > .form-panel {
+        transform: translate3d(100%, 0, 0);
+    }
+}
+
+@media (max-width: 800px) {
+    html.auth-page-slide-to-register .auth-container,
+    html.auth-page-slide-to-login .auth-container {
+        transition: transform 600ms ease-in-out;
+        will-change: transform;
+    }
+
+    html.auth-page-slide-to-register .auth-container {
+        transform: translate3d(-24px, 0, 0);
+    }
+
+    html.auth-page-slide-to-login .auth-container {
+        transform: translate3d(24px, 0, 0);
+    }
+}
+
+.login-panel {
+    align-items: center;
+}
+
+.register-panel {
+    align-items: flex-start;
+}
+
+.form-container {
+    width: 100%;
+    max-width: 430px;
+    margin: auto;
+}
+
+.register-panel .form-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+h1 {
+    margin: 0 0 7px;
+    color: white;
+    font-size: clamp(1.7rem, 3vw, 2.15rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    text-align: center;
+}
+
+h2 {
+    margin: 24px 0 12px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.form-container > p {
+    margin: 0 0 24px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    margin-bottom: 14px;
+}
+
+.field label {
+    margin: 0 0 6px;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.field input,
+.field select,
+.password-wrapper input {
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 10px 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    font: inherit;
+    font-size: 0.78rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input:focus,
+.field select:focus,
+.password-wrapper input:focus {
+    border-color: rgba(255, 255, 255, 0.75);
+    background-color: rgba(255, 255, 255, 0.13);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.field input::placeholder,
+.password-wrapper input::placeholder {
+    color: rgba(255, 255, 255, 0.56);
+}
+
+.field input:read-only {
+    opacity: 0.72;
+}
+
+.field select option {
+    color: var(--forest);
+}
+
+.optional {
+    color: #ffd1d8;
+    font-size: 0.68rem;
+}
+
+.error-message {
+    color: var(--error);
+    font-size: 0.7rem;
+}
+
+.success-message {
+    margin-bottom: 14px !important;
+    padding: 11px 13px;
+    border: 1px solid rgba(183, 231, 176, 0.24);
+    border-radius: 10px;
+    background: rgba(183, 231, 176, 0.12);
+    color: var(--success) !important;
+}
+
+.login-panel #loginError:not(:empty) {
+    margin: 4px 0 12px;
+    text-align: left;
+}
+
+.password-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.password-wrapper input {
+    flex: 1;
+}
+
+.password-wrapper button {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.password-wrapper button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.primary-button {
+    display: flex;
+    width: 100%;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #7bc8f7, #ae85e4);
+    box-shadow: 0 8px 20px rgba(25, 10, 40, 0.18);
+    color: white;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primary-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px rgba(25, 10, 40, 0.25);
+}
+
+.primary-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+}
+
+.otp-resend-form {
+    margin-top: 12px;
+}
+
+.form-footer {
+    margin: 16px 0 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.form-footer a {
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.form-footer a:hover {
+    text-decoration: underline;
+}
+
+#captchaQuestion {
+    margin: 0 0 11px;
+    padding: 13px;
+    border: 1px dashed rgba(230, 242, 225, 0.48);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+#lockoutStatus {
+    margin-top: 10px;
+    padding: 11px;
+    border: 1px solid rgba(255, 195, 189, 0.38);
+    border-radius: 9px;
+    background: rgba(255, 195, 189, 0.12);
+    color: var(--error);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.honeypot {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.register-panel form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+}
+
+.register-panel form h2,
+.register-panel form > p,
+.register-panel form > .primary-button,
+.register-panel form > .form-footer {
+    grid-column: 1 / -1;
+}
+
+.register-panel form h2 {
+    padding-top: 9px;
+    border-top: 1px solid rgba(230, 242, 225, 0.18);
+}
+
+.register-panel .privacy-field {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 8px 0 12px;
+}
+
+.register-panel .privacy-field input {
+    /* Slightly enlarge the consent checkbox and keep its checked state in the system's green palette. */
+    width: 18px;
+    height: 18px;
+    min-height: 18px;
+    flex: 0 0 18px;
+    margin: 2px 0 0;
+    padding: 0;
+    accent-color: #2d7545;
+}
+
+.register-panel .privacy-field label {
+    margin: 0;
+    line-height: 1.5;
+}
+
+.password-strength {
+    margin-top: 8px;
+}
+
+#strengthText {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--muted);
+    font-size: 0.68rem;
+}
+
+.strength-bar {
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+#strengthFill {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.3s ease;
+}
+
+@media (max-width: 800px) {
+    body:has(#loginForm),
+    body:has(#registerForm) {
+        padding: 18px;
+    }
+
+    .auth-container {
+        width: min(650px, 100%);
+        height: auto;
+        min-height: 0;
+        flex-direction: column;
+    }
+
+    .auth-visual {
+        width: 100%;
+        min-height: 260px;
+        flex: 0 0 auto;
+        padding: 28px 24px;
+    }
+
+    .visual-content {
+        max-width: 500px;
+    }
+
+    .visual-content h2 {
+        max-width: 430px;
+        font-size: 1.6rem;
+    }
+
+    .visual-circle {
+        width: 125px;
+        height: 125px;
+        margin: 18px auto 14px;
+    }
+
+    .visual-circle::before {
+        width: 92px;
+        height: 92px;
+    }
+
+    .visual-circle img {
+        width: 76px;
+        height: 76px;
+    }
+
+    .orbit-one {
+        width: 150px;
+        height: 56px;
+    }
+
+    .orbit-two {
+        width: 56px;
+        height: 150px;
+    }
+
+    .form-panel {
+        max-height: none;
+        padding: 32px;
+        overflow: visible;
+    }
+
+    .register-panel .form-container {
+        max-width: 620px;
+    }
+}
+
+@media (max-width: 520px) {
+    body:has(#loginForm),
+    body:has(#registerForm) {
+        padding: 0;
+    }
+
+    .auth-container {
+        width: 100%;
+        min-height: 100vh;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .auth-visual {
+        min-height: 220px;
+        padding: 24px 18px;
+    }
+
+    .visual-eyebrow {
+        font-size: 0.58rem;
+    }
+
+    .visual-content h2 {
+        font-size: 1.35rem;
+    }
+
+    .visual-content > p:not(.visual-eyebrow) {
+        font-size: 0.74rem;
+    }
+
+    .visual-circle {
+        width: 100px;
+        height: 100px;
+        margin: 14px auto 12px;
+    }
+
+    .visual-circle::before {
+        width: 72px;
+        height: 72px;
+    }
+
+    .visual-circle img {
+        width: 58px;
+        height: 58px;
+    }
+
+    .orbit-one {
+        width: 120px;
+        height: 46px;
+    }
+
+    .orbit-two {
+        width: 46px;
+        height: 120px;
+    }
+
+    .form-panel {
+        padding: 28px 20px;
+    }
+
+    .register-panel form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .register-panel form h2,
+    .register-panel form > p,
+    .register-panel form > .primary-button,
+    .register-panel form > .form-footer,
+    .register-panel .privacy-field {
+        grid-column: 1;
+    }
+}
+
+.visual-logo {
+    width: 180px;
+    height: 180px;
+    margin: 12px auto 8px;
+}
+
+.login-panel form {
+    margin-top: 12px;
+}
+
+.login-panel .field {
+    margin-bottom: 10px;
+}
+
+.login-panel .captcha-heading {
+    display: none;
+}
+
+.login-panel .captcha-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 140px;
+    align-items: center;
+    gap: 8px 10px;
+    margin-bottom: 8px;
+}
+
+.login-panel #captchaQuestion {
+    margin: 0;
+}
+
+.login-panel .captcha-field input {
+    min-height: 42px;
+}
+
+.login-panel .form-container > p:not(.error-message):not(.success-message) {
+    margin-bottom: 8px;
+}
+
+.security-notice {
+    padding: 8px 10px;
+    font-size: 0.64rem;
+}
+
+@media (max-width: 800px) {
+    .visual-logo {
+        width: 130px;
+        height: 130px;
+        margin: 12px auto;
+    }
+}
+
+@media (max-width: 520px) {
+    .visual-logo {
+        width: 115px;
+        height: 115px;
+    }
+}
+
+.login-panel .captcha-challenge {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.login-panel .captcha-challenge img {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    flex: 1;
+    border-radius: 8px;
+    background: var(--input);
+    object-fit: contain;
+}
+
+.login-panel .captcha-refresh {
+    min-height: 36px;
+    padding: 0 9px;
+    border: 1px solid #cbd9cc;
+    border-radius: 8px;
+    background: #f7faf6;
+    color: #2a6940;
+    font: inherit;
+    font-size: 0.66rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.login-panel .captcha-refresh:hover {
+    background: #e6f1e2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    @view-transition {
+        navigation: none;
+    }
+}
+
+:root {
+    --forest: #0b2b18;
+    --green: #1d5b35;
+    --green-light: #438857;
+    --text: #1b2831;
+    --muted: #788493;
+    --border: #dce3e8;
+    --error: #b6323d;
+    --success: #1d683a;
+    --panel: #e6f1e2;
+    --input: #f3f5f8;
+}
+
+body:has(#loginForm),
+body:has(#registerForm) {
+    padding: 28px;
+    color: var(--text);
+    background:
+        linear-gradient(rgba(179, 207, 174, 0.62), rgba(169, 199, 164, 0.62)),
+        url("../images/campus-background.jpg") center / cover fixed no-repeat;
+}
+
+.auth-container {
+    width: min(1136px, 100%);
+    margin-inline: auto;
+    height: min(88vh, 640px);
+    min-height: 560px;
+    border: 0;
+    border-radius: 30px;
+    background: var(--panel);
+    box-shadow: 0 24px 60px rgba(8, 39, 20, 0.25);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.auth-visual {
+    width: 50%;
+    flex-basis: 50%;
+    padding: 42px;
+    border-radius: 30px 30% 30% 30px;
+    background: linear-gradient(145deg, #123c22, #061d11);
+}
+
+.register-auth-container .auth-visual {
+    border-radius: 30% 30px 30px 30%;
+}
+
+.auth-visual::before,
+.auth-visual::after {
+    display: none;
+}
+
+.visual-content {
+    max-width: 410px;
+}
+
+.visual-content h2 {
+    margin-bottom: 16px;
+    font-size: clamp(2.2rem, 3.8vw, 2.9rem);
+    line-height: 1.12;
+}
+
+.visual-content > p:not(.visual-eyebrow) {
+    max-width: 390px;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+.visual-logo {
+    display: block;
+    width: 180px;
+    height: 180px;
+    margin: 12px auto 8px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.18));
+}
+
+.visual-switch-button {
+    min-width: 166px;
+    min-height: 46px;
+    margin: 0 auto;
+    padding: 0 24px;
+    border-radius: 9px;
+    color: white;
+    font-size: 0.88rem;
+}
+
+.visual-switch-button:hover {
+    color: var(--forest);
+}
+
+.visual-home-button {
+    display: inline-flex;
+    min-width: 166px;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto 0;
+    padding: 0 24px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 9px;
+    background: transparent;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.visual-home-button:hover {
+    transform: translateY(-2px);
+    background: #fff;
+    color: var(--forest);
+}
+
+.visual-home-button:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.55);
+    outline-offset: 3px;
+}
+
+.form-panel {
+    min-width: 0;
+    padding: 48px 56px;
+    background: var(--panel);
+    color: var(--text);
+    scrollbar-color: #b7c8b7 transparent;
+}
+
+.login-panel {
+    align-items: center;
+}
+
+.register-panel {
+    align-items: flex-start;
+}
+
+.form-container {
+    max-width: 430px;
+    margin: auto;
+}
+
+.register-panel .form-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+h1 {
+    margin: 0 0 10px;
+    color: #17252f;
+    font-size: clamp(1.9rem, 3vw, 2.35rem);
+    letter-spacing: -0.045em;
+}
+
+h2 {
+    color: #244333;
+}
+
+.form-container > p {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.field {
+    margin-bottom: 14px;
+}
+
+.field label {
+    color: #33423a;
+}
+
+.field input,
+.field select,
+.password-wrapper input {
+    border-color: var(--border);
+    background: var(--input);
+    color: #26323d;
+}
+
+.field input:focus,
+.field select:focus,
+.password-wrapper input:focus {
+    border-color: #6a9c74;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(52, 113, 66, 0.12);
+}
+
+.field input::placeholder,
+.password-wrapper input::placeholder {
+    color: #8994a2;
+}
+
+.field select option {
+    color: #26323d;
+}
+
+.optional {
+    color: #768271;
+}
+
+.register-panel label[for="middle_name"] .optional {
+    color: #c0392b;
+}
+
+.register-panel .required-marker {
+    color: #c0392b;
+}
+
+.error-message {
+    color: var(--error);
+}
+
+.success-message {
+    border-color: #c9e2c6;
+    background: #f2f8ef;
+    color: var(--success) !important;
+}
+
+.login-panel .form-container {
+    max-width: 403px;
+}
+
+.login-panel h1 {
+    font-size: 2.25rem;
+}
+
+.login-panel .form-container > p:not(.error-message):not(.success-message) {
+    margin: 0 auto 12px;
+    color: var(--muted);
+}
+
+.login-panel #loginError:empty {
+    display: none;
+}
+
+.login-panel #loginError:not(:empty) {
+    margin: 0 0 10px;
+    color: var(--error);
+}
+
+.approval-notice-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(5, 20, 12, 0.58);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+
+.approval-notice-dialog {
+    width: min(460px, 100%);
+    padding: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 20px;
+    background: rgba(247, 251, 245, 0.96);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+    color: #173c26;
+    text-align: center;
+}
+
+.approval-notice-eyebrow {
+    margin: 0 0 10px;
+    color: #39744c;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.approval-notice-dialog h2 {
+    margin: 0 0 12px;
+    color: #173c26;
+    font-size: clamp(1.35rem, 4vw, 1.7rem);
+}
+
+.approval-notice-dialog > p:not(.approval-notice-eyebrow) {
+    margin: 0 0 24px;
+    color: #42584a;
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+
+.approval-notice-button {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 22px;
+    border-radius: 999px;
+    background: #1c4d2e;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.approval-notice-button:hover,
+.approval-notice-button:focus-visible {
+    background: #123b22;
+}
+
+.login-panel form {
+    margin-top: 16px;
+}
+
+.login-panel .field {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.login-panel .field > label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.login-input {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 49px;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--input);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.login-input:focus-within {
+    border-color: #6a9c74;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(52, 113, 66, 0.12);
+}
+
+.login-input-icon {
+    position: absolute;
+    left: 16px;
+    width: 18px;
+    height: 18px;
+    fill: #5b6878;
+    pointer-events: none;
+}
+
+.login-panel .login-input input,
+.login-panel .password-wrapper input {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 0 14px 0 50px;
+    border: 0;
+    border-radius: inherit;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+    color: #293542;
+    font-size: 0.85rem;
+}
+
+.login-panel .password-wrapper {
+    height: 49px;
+    gap: 0;
+}
+
+.login-panel .password-wrapper input {
+    flex: 1;
+    min-width: 0;
+}
+
+.login-panel #togglePassword {
+    position: relative;
+    width: 42px;
+    min-height: 42px;
+    flex: 0 0 42px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: transparent;
+    font-size: 0;
+}
+
+.login-panel #togglePassword::before {
+    position: absolute;
+    top: 15px;
+    left: 12px;
+    width: 15px;
+    height: 10px;
+    border: 2px solid #5b6878;
+    border-radius: 70% 20%;
+    content: "";
+    transform: rotate(45deg);
+}
+
+.login-panel #togglePassword::after {
+    position: absolute;
+    top: 19px;
+    left: 19px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #5b6878;
+    content: "";
+}
+
+.login-panel .captcha-heading {
+    margin: 0 0 7px;
+    color: #43574a;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: left;
+}
+
+.login-panel .captcha-field {
+    margin-bottom: 12px;
+}
+
+.login-panel #captchaQuestion {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    border: 1px solid #d5e4d3;
+    border-radius: 8px;
+    background: #f5f8f2;
+    color: #385344;
+    font-size: 0.75rem;
+}
+
+.login-panel .captcha-field input {
+    min-height: 42px;
+}
+
+.login-panel #lockoutStatus {
+    margin: 0 0 12px;
+    border-color: #f0c5c6;
+    background: #fff3f2;
+    color: #a8323a;
+}
+
+.login-actions {
+    margin: 0 0 16px;
+    text-align: right;
+}
+
+.login-actions a {
+    color: #2a6940;
+    font-size: 0.76rem;
+    text-decoration: none;
+}
+
+.login-actions a:hover {
+    text-decoration: underline;
+}
+
+.primary-button {
+    min-height: 47px;
+    margin-top: 0;
+    border-radius: 9px;
+    background: linear-gradient(100deg, #174c2c, #3c8653);
+    box-shadow: 0 7px 15px rgba(25, 82, 45, 0.18);
+    font-size: 0.9rem;
+}
+
+.primary-button:hover {
+    background: linear-gradient(100deg, #1d5b35, #4a9660);
+    box-shadow: 0 10px 20px rgba(25, 82, 45, 0.22);
+}
+
+.form-footer {
+    color: var(--muted);
+}
+
+.form-footer a {
+    color: #2a6940;
+}
+
+.security-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    margin-top: 11px;
+    padding: 10px 12px;
+    border: 1px solid #cfe0c8;
+    border-radius: 13px;
+    background: #f3f8ef;
+    color: #667b6a;
+    font-size: 0.68rem;
+    line-height: 1.45;
+}
+
+.security-notice svg {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    fill: #24633b;
+}
+
+.security-notice strong {
+    display: block;
+    margin-bottom: 2px;
+    color: #1e3024;
+    font-size: 0.72rem;
+}
+
+#captchaQuestion {
+    border-color: #d5e4d3;
+    background: #f5f8f2;
+    color: #385344;
+}
+
+#lockoutStatus {
+    border-color: #f0c5c6;
+    background: #fff3f2;
+    color: #a8323a;
+}
+
+.register-panel .form-container > p {
+    color: var(--muted);
+}
+
+.register-panel form h2 {
+    border-color: rgba(29, 91, 53, 0.18);
+    color: #244333;
+}
+
+.register-panel .privacy-field input {
+    accent-color: #2d7545;
+}
+
+#strengthText {
+    color: #6f7d73;
+}
+
+.strength-bar {
+    background: #dce5dc;
+}
+
+@media (max-width: 800px) {
+    body {
+        padding: 18px;
+    }
+
+    .auth-container {
+        width: min(650px, 100%);
+        height: auto;
+        min-height: 0;
+        flex-direction: column;
+    }
+
+    .auth-visual,
+    .register-auth-container .auth-visual {
+        width: 100%;
+        min-height: 260px;
+        flex: 0 0 auto;
+        padding: 28px 24px;
+        border-radius: 28px 28px 24% 24%;
+    }
+
+    .visual-content h2 {
+        font-size: 2rem;
+    }
+
+    .visual-logo {
+        width: 115px;
+        height: 115px;
+        margin: 14px auto 16px;
+    }
+
+    .form-panel {
+        max-height: none;
+        padding: 32px;
+        overflow: visible;
+    }
+
+    .register-panel .form-container {
+        max-width: 620px;
+    }
+}
+
+@media (max-width: 520px) {
+    body {
+        padding: 0;
+    }
+
+    .auth-container {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    .auth-visual,
+    .register-auth-container .auth-visual {
+        min-height: 250px;
+        padding: 26px 18px;
+        border-radius: 0 0 22% 22%;
+    }
+
+    .visual-content h2 {
+        font-size: 1.8rem;
+    }
+
+    .visual-content > p:not(.visual-eyebrow) {
+        font-size: 0.78rem;
+    }
+
+    .visual-logo {
+        width: 100px;
+        height: 100px;
+    }
+
+    .form-panel {
+        padding: 28px 20px;
+    }
+
+    .login-panel h1 {
+        font-size: 2rem;
+    }
+
+    .register-panel form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .register-panel form h2,
+    .register-panel form > p,
+    .register-panel form > .primary-button,
+    .register-panel form > .form-footer,
+    .register-panel .privacy-field {
+        grid-column: 1;
+    }
+}
+
+
+/* Keep registration's original layout and curve while giving both panels equal width. */
+@media (min-width: 801px) {
+    .register-auth-container {
+        width: min(1136px, 100%);
+        margin-inline: auto;
+        height: min(88vh, 800px);
+    }
+
+    .register-auth-container > .auth-visual {
+        width: 50%;
+        flex: 0 0 50%;
+    }
+}
+
+.registration-error {
+    margin: 0 0 18px !important;
+    padding: 12px 14px;
+    border: 1px solid #f0b4b0;
+    border-radius: 10px;
+    background: #fff2f0;
+    color: #9f312b !important;
+    text-align: left !important;
+}
+
+.registration-flow-note {
+    display: grid;
+    gap: 9px;
+    margin: 22px 0 24px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.72rem;
+}
+
+.registration-flow-note span {
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Give registration's welcome panel a clearer text hierarchy without changing its content or actions. */
+.register-auth-container .visual-content h2 {
+    margin-bottom: 12px;
+    font-size: clamp(2.5rem, 4vw, 3.15rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+}
+
+.register-auth-container .visual-actions {
+    display: flex;
+    width: min(100%, 340px);
+    gap: 10px;
+    margin: 14px auto 0;
+}
+
+.register-auth-container .visual-actions > a {
+    display: inline-flex;
+    min-width: 0;
+    min-height: 44px;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+}
+
+.register-auth-container .visual-content > p:not(.visual-eyebrow) {
+    max-width: 380px;
+    font-size: 0.96rem;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    line-height: 1.6;
+}
+
+.register-auth-container .registration-flow-note {
+    width: min(100%, 410px);
+    gap: 11px;
+    margin: 24px auto 26px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.register-auth-container .registration-flow-note span {
+    padding: 11px 16px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.register-panel form.is-wizard {
+    display: block;
+}
+
+.registration-progress {
+    /* Keep all registration steps on one row; allow horizontal scrolling when space is tight. */
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin: 0 0 22px;
+    padding: 0 0 6px;
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-behavior: smooth;
+    scroll-padding-inline: 12px;
+    scrollbar-width: thin;
+}
+
+.registration-progress li {
+    /* Keep each step label readable without wrapping or shrinking it too far. */
+    flex: 0 0 auto;
+    min-width: max-content;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 12px;
+    border: 1px solid #d9e4d8;
+    border-radius: 12px;
+    background: #f5f8f3;
+    color: #647566;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.registration-progress li.is-current {
+    border-color: #38784b;
+    background: #eaf4e9;
+    color: #1c4d2e;
+    font-weight: 700;
+}
+
+.registration-progress li.is-complete {
+    border-color: #9bbd9e;
+    color: #2b6940;
+}
+
+.registration-step {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+    min-height: 340px;
+}
+
+.registration-step[hidden] {
+    display: none !important;
+}
+
+.registration-step > h2,
+.registration-step > p,
+.registration-step > .privacy-field {
+    grid-column: 1 / -1;
+}
+
+.registration-step > h2 {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Keep the step description close to its heading instead of inheriting browser paragraph spacing. */
+.registration-step > p {
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+
+.registration-step-navigation {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.registration-step-navigation button {
+    width: auto;
+    min-width: 120px;
+    margin-top: 0;
+    padding: 0 20px;
+    cursor: pointer;
+}
+
+.registration-step-navigation [hidden] {
+    display: none !important;
+}
+
+.registration-step-count {
+    flex: 1;
+    color: #667b6a;
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+.registration-step-navigation .secondary-button {
+    min-height: 47px;
+    border: 1px solid #cfddce;
+    border-radius: 9px;
+    background: white;
+    color: #315e3d;
+    font: inherit;
+    font-size: 0.85rem;
+}
+
+.register-panel .registration-step .privacy-field {
+    grid-column: 1 / -1;
+}
+
+#registrationCaptcha {
+    display: block;
+    width: 180px;
+    height: 60px;
+    margin: 0;
+    border: 1px solid #d8e2d7;
+    border-radius: 8px;
+    background: #f3f7f1;
+}
+
+/* Separate the CAPTCHA image from its refresh button while keeping them aligned. */
+.registration-captcha-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 10px;
+}
+
+.captcha-refresh-button {
+    padding: 6px 10px;
+    border: 1px solid #cfdccf;
+    border-radius: 7px;
+    background: #fff;
+    color: #315e3d;
+    font: inherit;
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+@media (max-width: 640px) {
+    .registration-progress li {
+        min-height: 42px;
+        padding: 8px 10px;
+        font-size: 0.7rem;
+    }
+
+    .registration-step {
+        grid-template-columns: minmax(0, 1fr);
+        min-height: 0;
+    }
+
+    .registration-step > h2,
+    .registration-step > p,
+    .registration-step > .privacy-field {
+        grid-column: 1;
+    }
+
+    .registration-step-navigation {
+        gap: 8px;
+    }
+
+    .registration-step-navigation button {
+        min-width: 0;
+        flex: 1;
+        padding: 0 10px;
+    }
+}
+
+/* Match the login card styling in Organization_Fee_System. */
+.auth-container:has(#loginForm) {
+    width: min(1136px, 94vw);
+    height: min(88vh, 640px);
+    max-height: 640px;
+    min-height: 560px;
+    border: 0;
+    border-radius: 30px;
+    background: rgba(230, 242, 225, 0.92);
+    box-shadow: 0 28px 80px rgba(13, 31, 22, 0.22);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.auth-container:has(#loginForm) > .auth-visual {
+    width: 50%;
+    flex-basis: 50%;
+    border-radius: 26px 190px 190px 26px;
+    background: linear-gradient(145deg, #14381f, #0d1f16);
+    box-shadow: 0 12px 35px rgba(13, 31, 22, 0.24);
+}
+
+.auth-container:has(#loginForm) > .form-panel {
+    background: rgba(230, 242, 225, 0.82);
+    color: #202638;
+}
+
+.auth-container:has(#loginForm) .form-container h1 {
+    color: #202638;
+}
+
+.auth-container:has(#loginForm) .form-intro {
+    color: #7a8191;
+}
+
+.auth-container:has(#loginForm) .visual-circle {
+    width: 150px;
+    height: 150px;
+    margin: 8px auto 14px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.auth-container:has(#loginForm) .visual-circle::before {
+    display: none;
+}
+
+.auth-container:has(#loginForm) .visual-circle > img.visual-logo {
+    width: 172px;
+    height: 172px;
+    object-fit: contain;
+}
+
+.auth-container:has(#loginForm) .visual-content h2 {
+    margin-bottom: 10px;
+    font-size: clamp(2rem, 3.5vw, 2.8rem);
+    letter-spacing: -0.035em;
+}
+
+.auth-container:has(#loginForm) .visual-content > p {
+    max-width: 360px;
+    margin-bottom: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.82rem;
+}
+
+.auth-container:has(#loginForm) .login-input,
+.auth-container:has(#loginForm) .password-wrapper {
+    border: 1px solid #e0e4ed;
+    border-radius: 8px;
+    background: #f5f6fa;
+}
+
+.auth-container:has(#loginForm) .login-input:focus-within,
+.auth-container:has(#loginForm) .password-wrapper:focus-within {
+    border-color: #3f8451;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(63, 132, 81, 0.16);
+}
+
+.auth-container:has(#loginForm) .login-input-icon {
+    color: #566075;
+    fill: none;
+    stroke: #566075;
+}
+
+.auth-container:has(#loginForm) .login-input input,
+.auth-container:has(#loginForm) .password-wrapper input {
+    color: #202638;
+}
+
+.auth-container:has(#loginForm) .login-input input::placeholder,
+.auth-container:has(#loginForm) .password-wrapper input::placeholder {
+    color: #9299a8;
+}
+
+.auth-container:has(#loginForm) .captcha-field input {
+    border-color: #e0e4ed;
+    border-radius: 8px;
+    background: #f5f6fa;
+    color: #202638;
+    letter-spacing: 0.16em;
+}
+
+.auth-container:has(#loginForm) .captcha-field input::placeholder {
+    color: #9299a8;
+}
+
+.auth-container:has(#loginForm) .captcha-heading,
+.auth-container:has(#loginForm) .captcha-field > label {
+    color: #555e70;
+}
+
+.auth-container:has(#loginForm) .captcha-refresh {
+    border-color: #d5dfd1;
+    background: #f3f8f0;
+    color: #1c4d2e;
+}
+
+.auth-container:has(#loginForm) .primary-button {
+    border-radius: 8px;
+    background: linear-gradient(90deg, #1c4d2e, #3f8451);
+    box-shadow: 0 7px 16px rgba(13, 31, 22, 0.18);
+}
+
+.auth-container:has(#loginForm) .primary-button:hover {
+    background: linear-gradient(90deg, #14381f, #2e6b3f);
+}
+
+.auth-container:has(#loginForm) .login-actions a {
+    color: #1c4d2e;
+}
+
+.auth-container:has(#loginForm) .security-notice {
+    border-color: #c3ddba;
+    background: #f3f8f0;
+    color: #355642;
+}
+
+.auth-container:has(#loginForm) .security-notice svg {
+    color: #1c4d2e;
+    fill: none;
+}
+
+.auth-container:has(#loginForm) .security-notice strong {
+    color: #0d1f16;
+}
+
+@media (max-width: 800px) {
+    .auth-container:has(#loginForm) {
+        width: min(650px, 100%);
+        height: auto;
+        max-height: none;
+        min-height: 0;
+    }
+
+    .auth-container:has(#loginForm) > .auth-visual {
+        width: 100%;
+        flex-basis: auto;
+        border-radius: 28px 28px 24% 24%;
+    }
+}
+
+@media (max-width: 520px) {
+    .auth-container:has(#loginForm) {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    .auth-container:has(#loginForm) > .auth-visual {
+        border-radius: 0 0 22% 22%;
+    }
+}
+
+/* Shared eye-off password control for login and registration. */
+.password-wrapper {
+    position: relative;
+}
+
+.password-visibility-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    z-index: 2;
+    display: grid;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    place-items: center;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #566075;
+    cursor: pointer;
+}
+
+.password-visibility-toggle:hover {
+    background: rgba(86, 96, 117, 0.1);
+}
+
+.password-visibility-toggle:focus-visible {
+    outline: 2px solid #3f8451;
+    outline-offset: 2px;
+}
+
+.password-visibility-toggle svg {
+    display: block;
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.password-visibility-toggle.is-visible .password-eye-slash {
+    display: none;
+}
+
+.password-wrapper > input {
+    padding-right: 50px;
+}
+
+.password-wrapper > button.password-visibility-toggle {
+    min-height: 36px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #566075;
+}
+
+.auth-container:has(#loginForm) .password-wrapper > input {
+    padding-right: 50px;
+}
+
+.login-panel #togglePassword.password-visibility-toggle {
+    right: 7px;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    flex: 0 0 36px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #566075;
+    font-size: 0;
+}
+
+.login-panel #togglePassword.password-visibility-toggle svg {
+    display: block;
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+.login-panel #togglePassword::before,
+.login-panel #togglePassword::after {
+    content: none;
+}
+
+/* Login visual matched to the supplied Organization_Fee_System reference. */
+body:has(#loginForm) {
+    padding: 20px;
+    background:
+        linear-gradient(rgba(161, 194, 159, 0.56), rgba(161, 194, 159, 0.68)),
+        url("../images/campus-background.jpg") center / cover fixed no-repeat;
+}
+
+.auth-container:has(#loginForm) {
+    width: min(1136px, 94vw);
+    height: min(88vh, 640px);
+    max-height: 640px;
+    min-height: 560px;
+    border: 0;
+    border-radius: 30px;
+    background: rgba(230, 242, 225, 0.88);
+    box-shadow: 0 28px 80px rgba(13, 31, 22, 0.22);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.auth-container:has(#loginForm) > .auth-visual {
+    width: 50%;
+    flex-basis: 50%;
+    border-radius: 26px 190px 190px 26px;
+    background: linear-gradient(145deg, #14381f, #0b2416) !important;
+    box-shadow: 0 12px 35px rgba(13, 31, 22, 0.2);
+}
+
+.auth-container:has(#loginForm) > .form-panel {
+    padding: 48px 7%;
+    background: rgba(230, 242, 225, 0.88);
+    color: #202638;
+}
+
+.auth-container:has(#loginForm) .form-container {
+    width: min(390px, 85%);
+    max-width: 390px;
+}
+
+.auth-container:has(#loginForm) .form-container h1 {
+    margin-bottom: 8px;
+    color: #202638;
+    font-size: clamp(1.8rem, 3.5vw, 2.3rem);
+    letter-spacing: -0.045em;
+}
+
+.auth-container:has(#loginForm) .form-intro {
+    margin: 0 auto 22px;
+    color: #7a8191;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.auth-container:has(#loginForm) .visual-content h2 {
+    order: 1;
+    margin: 0 auto 16px;
+    font-size: clamp(2rem, 3.5vw, 2.8rem);
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+}
+
+.auth-container:has(#loginForm) .visual-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-container:has(#loginForm) .visual-content > p {
+    order: 4;
+    max-width: 440px;
+    margin: 0 auto 18px;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.auth-container:has(#loginForm) .visual-circle {
+    order: 3;
+    position: relative;
+    isolation: isolate;
+    width: 150px;
+    height: 150px;
+    margin: 8px auto 14px;
+    display: flex;
+    flex: 0 0 150px;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    box-shadow: none;
+}
+
+.auth-container:has(#loginForm) .visual-circle .visual-orbit {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.auth-container:has(#loginForm) .visual-circle .visual-orbit.orbit-one {
+    transform: translate(-50%, -50%) rotate(25deg);
+}
+
+.auth-container:has(#loginForm) .visual-circle .visual-orbit.orbit-two {
+    transform: translate(-50%, -50%) rotate(-25deg);
+}
+
+.auth-container:has(#loginForm) .visual-circle::before {
+    display: none;
+}
+
+.auth-container:has(#loginForm) .visual-circle > img.visual-logo {
+    position: relative;
+    z-index: 2;
+    display: block;
+    flex: 0 0 auto;
+    width: 172px;
+    height: 172px;
+    object-fit: contain;
+}
+
+.auth-container:has(#loginForm) .visual-decoration {
+    display: inline-flex;
+    min-width: 0;
+    min-height: 44px;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.auth-container:has(#loginForm) .visual-decoration:hover {
+    background: #e6f2e1;
+    color: #14381f;
+}
+
+.auth-container:has(#loginForm) .visual-actions {
+    order: 5;
+    display: flex;
+    width: min(100%, 340px);
+    gap: 10px;
+    margin: 14px auto 0;
+}
+
+.auth-container:has(#loginForm) .visual-actions > a {
+    min-width: 0;
+    min-height: 44px;
+    flex: 1 1 0;
+    margin: 0;
+    border-radius: 8px;
+    font-size: 0.82rem;
+}
+
+.auth-container:has(#loginForm) .login-input,
+.auth-container:has(#loginForm) .password-wrapper {
+    height: 48px;
+    min-height: 48px;
+    margin-bottom: 18px;
+    border: 1px solid #e0e4ed;
+    border-radius: 11px;
+    background: #f5f6fa;
+}
+
+.auth-container:has(#loginForm) .login-input:focus-within,
+.auth-container:has(#loginForm) .password-wrapper:focus-within {
+    border-color: #3f8451;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(63, 132, 81, 0.16);
+}
+
+.auth-container:has(#loginForm) .login-input-icon {
+    color: #566075;
+    fill: none;
+    stroke: #566075;
+}
+
+.auth-container:has(#loginForm) .login-input input,
+.auth-container:has(#loginForm) .password-wrapper input {
+    color: #202638;
+    font-size: 0.95rem;
+}
+
+.auth-container:has(#loginForm) .login-input input::placeholder,
+.auth-container:has(#loginForm) .password-wrapper input::placeholder {
+    color: #9299a8;
+}
+
+.auth-container:has(#loginForm) #togglePassword::before,
+.auth-container:has(#loginForm) #togglePassword::after {
+    border-color: #566075;
+    background-color: #566075;
+}
+
+.auth-container:has(#loginForm) .captcha-heading,
+.auth-container:has(#loginForm) .captcha-field > label {
+    color: #555e70;
+}
+
+.auth-container:has(#loginForm) .captcha-field input {
+    min-height: 48px;
+    border: 1px solid #e0e4ed;
+    border-radius: 9px;
+    background: #f5f6fa;
+    color: #202638;
+    letter-spacing: 0.16em;
+}
+
+.auth-container:has(#loginForm) .captcha-field input::placeholder {
+    color: #9299a8;
+}
+
+.auth-container:has(#loginForm) .captcha-refresh {
+    border-color: #d5dfd1;
+    background: #f3f8f0;
+    color: #1c4d2e;
+}
+
+.auth-container:has(#loginForm) .login-actions a {
+    color: #1c4d2e;
+}
+
+.auth-container:has(#loginForm) .primary-button {
+    min-height: 46px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #1c4d2e, #3f8451);
+    box-shadow: 0 7px 16px rgba(13, 31, 22, 0.18);
+    font-size: 1rem;
+}
+
+.auth-container:has(#loginForm) .primary-button:hover {
+    background: linear-gradient(90deg, #14381f, #2e6b3f);
+}
+
+.auth-container:has(#loginForm) .security-notice {
+    border-color: #c3ddba;
+    border-radius: 15px;
+    background: #f3f8f0;
+    color: #496653;
+}
+
+.auth-container:has(#loginForm) .security-notice svg {
+    color: #1c4d2e;
+    fill: none;
+}
+
+.auth-container:has(#loginForm) .security-notice strong {
+    color: #0d1f16;
+}
+
+@media (max-width: 800px) {
+    body:has(#loginForm),
+    body:has(#registerForm) {
+        padding: 18px;
+    }
+
+    .auth-container:has(#loginForm) {
+        width: min(650px, 100%);
+        height: auto;
+        max-height: none;
+        min-height: 0;
+    }
+
+    .auth-container:has(#loginForm) > .auth-visual {
+        width: 100%;
+        flex-basis: auto;
+        border-radius: 30px 30px 24% 24%;
+    }
+}
+
+@media (max-width: 520px) {
+    body:has(#loginForm),
+    body:has(#registerForm) {
+        padding: 0;
+    }
+
+    .auth-container:has(#loginForm) {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    .auth-container:has(#loginForm) > .auth-visual {
+        border-radius: 0 0 22% 22%;
+    }
+}
+
+/* Registration inline validation messages */
+/* Keep live username and email availability feedback readable below each field. */
+.register-panel .availability-feedback {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.register-panel .availability-feedback.success {
+    color: #218838;
+}
+
+.register-panel .availability-feedback.error {
+    color: #c0392b;
+}
+
+.register-panel .availability-feedback.checking {
+    color: #687587;
+}
+
+.register-panel .field > .error-message {
+    display: block;
+    width: 100%;
+    margin: 6px 0 0;
+    color: #c0392b;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.register-panel .field > .error-message:empty {
+    display: none;
+}
+
+.register-panel .field > .error-message[hidden] {
+    display: none;
+}
+
+.register-panel .field > .availability-feedback.success {
+    color: #218838;
+}
+
+.register-panel .field > .availability-feedback.error {
+    color: #c0392b;
+}
+
+.register-panel .field > .availability-feedback.checking {
+    color: #687587;
+}
+
+.register-panel .security-question-text {
+    margin: 6px 0 12px;
+    color: #243629;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.register-panel .registration-step.security-question-step {
+    grid-template-columns: 1fr;
+}
+
+.register-panel .field {
+    position: relative;
+}
+
+.register-panel .address-suggestions {
+    position: absolute;
+    z-index: 40;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 210px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid #cbd7c8;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(24, 48, 31, 0.18);
+}
+
+.register-panel .address-suggestion-option {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #253a2b;
+    font: inherit;
+    font-size: 0.82rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.register-panel .address-suggestion-option:hover,
+.register-panel .address-suggestion-option:focus-visible {
+    background: #edf3ea;
+    color: #315c3b;
+}
+
+/* Keep the auth form floating over the page without the pale rectangular panel. */
+.auth-container:has(#loginForm),
+.auth-container:has(#registerForm) {
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.auth-container:has(#loginForm) > .form-panel,
+.auth-container:has(#registerForm) > .form-panel {
+    background: transparent;
+    color: #f7fbf5;
+}
+
+.auth-container:has(#loginForm) .form-container h1,
+.auth-container:has(#registerForm) .form-container h1,
+.auth-container:has(#registerForm) .form-container h2,
+.auth-container:has(#loginForm) .field label,
+.auth-container:has(#registerForm) .field label {
+    color: #f7fbf5;
+}
+
+.auth-container:has(#loginForm) .form-intro,
+.auth-container:has(#registerForm) .form-container > p {
+    color: rgba(247, 251, 245, 0.84);
+}
+
+.auth-container:has(#loginForm) .login-actions a,
+.auth-container:has(#registerForm) .login-actions a {
+    color: #c5e8c0;
+}
+
+/* The form-side surface is intentionally clear; only controls keep their own fills. */
+body:has(#loginForm) .auth-container,
+body:has(#registerForm) .auth-container {
+    background: #fff !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:has(#loginForm) .login-panel,
+body:has(#registerForm) .register-panel,
+body:has(#loginForm) .login-panel form,
+body:has(#registerForm) .register-panel form {
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body:has(#loginForm) .auth-container > .form-panel,
+body:has(#registerForm) .auth-container > .form-panel {
+    background: #fff !important;
+    color: #202638;
+}
+
+body:has(#loginForm) .form-container h1,
+body:has(#registerForm) .form-container h1,
+body:has(#registerForm) .form-container h2,
+body:has(#loginForm) .field label,
+body:has(#registerForm) .field label {
+    color: #202638;
+}
+
+body:has(#loginForm) .form-intro,
+body:has(#registerForm) .form-container > p {
+    color: #687587;
+}
+
+body:has(#loginForm) .login-actions a,
+body:has(#registerForm) .login-actions a {
+    color: #1c4d2e;
+}
+
+html:has(#loginForm),
+html:has(#registerForm),
+body:has(#loginForm),
+body:has(#registerForm) {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html:has(#loginForm)::-webkit-scrollbar,
+html:has(#registerForm)::-webkit-scrollbar,
+body:has(#loginForm)::-webkit-scrollbar,
+body:has(#registerForm)::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+body:has(#loginForm) .login-panel .form-container h1,
+body:has(#registerForm) .register-panel .form-container h1,
+body:has(#registerForm) .register-panel .form-container h2,
+body:has(#loginForm) .login-panel .field label,
+body:has(#registerForm) .register-panel .field label {
+    color: #202638 !important;
+}
+
+body:has(#loginForm) .login-panel .form-intro,
+body:has(#registerForm) .register-panel .form-container > p {
+    color: #687587 !important;
+}
+
+.register-panel .field > input[aria-invalid="true"],
+.register-panel .field > select[aria-invalid="true"] {
+    border-color: #c0392b;
+}
+
+/* Share the landing page palette, typography, surfaces, and dimensions across Login and Register. */
+body:has(#loginForm),
+body:has(#registerForm) {
+    color: #fff;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background:
+        linear-gradient(115deg, rgba(10, 30, 19, 0.88), rgba(15, 44, 27, 0.7)),
+        url("../images/campus-background.jpg") center / cover fixed no-repeat;
+}
+
+.auth-container:has(#loginForm),
+.auth-container:has(#registerForm) {
+    width: min(1136px, calc(100vw - 40px));
+    height: min(88vh, 640px);
+    max-height: 640px;
+    min-height: 560px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 28px;
+    background: rgba(247, 250, 244, 0.96);
+    box-shadow: 0 25px 70px rgba(8, 24, 15, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Both pages use equal panels; the registration panel stays on its original opposite side. */
+.auth-container:has(#loginForm) > .auth-visual,
+.auth-container:has(#registerForm) > .auth-visual {
+    width: 50%;
+    flex: 0 0 50%;
+    background: linear-gradient(145deg, #163d27, #10281b) !important;
+}
+
+.auth-container:has(#loginForm) > .auth-visual {
+    border-radius: 26px 190px 190px 26px;
+}
+
+.auth-container:has(#registerForm) > .auth-visual {
+    border-radius: 190px 26px 26px 190px;
+}
+
+.auth-container:has(#loginForm) > .form-panel,
+.auth-container:has(#registerForm) > .form-panel {
+    background: #f7faf4 !important;
+    color: #1b3123;
+}
+
+.auth-container:has(#loginForm) .form-container h1,
+.auth-container:has(#registerForm) .form-container h1 {
+    color: #1b3123 !important;
+    font-family: "Segoe UI", Arial, sans-serif;
+    letter-spacing: -0.04em;
+}
+
+.auth-container:has(#loginForm) .form-intro,
+.auth-container:has(#registerForm) .form-container > p {
+    color: #657567 !important;
+}
+
+/* Keep the recovery link legible on the pale login form surface. */
+.auth-container:has(#loginForm) .login-actions a {
+    color: #1c4d2e !important;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.auth-container:has(#loginForm) .login-actions a:hover,
+.auth-container:has(#loginForm) .login-actions a:focus-visible {
+    color: #10281b !important;
+}
+
+/* Keep the same two-panel structure at tablet and phone sizes. */
+@media (max-width: 800px) {
+    body:has(#loginForm),
+    body:has(#registerForm) {
+        padding: 18px;
+    }
+
+    .auth-container:has(#loginForm),
+    .auth-container:has(#registerForm) {
+        width: min(650px, 100%);
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        flex-direction: column;
+    }
+
+    .auth-container:has(#loginForm) > .auth-visual,
+    .auth-container:has(#registerForm) > .auth-visual {
+        width: 100%;
+        flex-basis: auto;
+        border-radius: 28px 28px 24% 24%;
+    }
+
+    .auth-container:has(#loginForm) > .form-panel,
+    .auth-container:has(#registerForm) > .form-panel {
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+@media (max-width: 520px) {
+    body:has(#loginForm),
+    body:has(#registerForm) {
+        padding: 0;
+    }
+
+    .auth-container:has(#loginForm),
+    .auth-container:has(#registerForm) {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    .auth-container:has(#loginForm) > .auth-visual,
+    .auth-container:has(#registerForm) > .auth-visual {
+        border-radius: 0 0 22% 22%;
+    }
+}
