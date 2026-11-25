@@ -65,7 +65,7 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="css/auth.css?v=20261123-23">
 
     <!-- Update the version when register.js changes so browsers load its latest validation message. -->
-    <script src="js/register.js?v=20261123-23" defer></script>
+    <script src="js/register.js?v=20261124-2" defer></script>
     <script src="js/auth-transition.js?v=20261121-4" defer></script>
 </head>
 
@@ -180,6 +180,7 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            minlength="2"
                            maxlength="28"
                            pattern="[A-Z][a-z]+( [A-Z][a-z]+)*"
+                           placeholder="e.g., Juan"
                            required>
 
                     <small class="error-message" id="first_nameError"></small>
@@ -217,6 +218,7 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            minlength="2"
                            maxlength="28"
                            pattern="[A-Z][a-z]+( [A-Z][a-z]+)*"
+                           placeholder="e.g., Dela Cruz"
                            required>
 
                     <small class="error-message" id="family_nameError"></small>
@@ -503,6 +505,7 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                            name="email"
                            value="<?= $oldValue('email') ?>"
                            maxlength="100"
+                           placeholder="example@example.com"
                            required>
 
                     <!-- Displays email availability feedback directly below the email field. -->
@@ -604,11 +607,10 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
 
                 <h2>Security Questions</h2>
 
-                <p>Answer all three security questions assigned to your account.</p>
+                <p>Choose three questions and provide your answers.</p>
 
 
                 <?php for ($i = 1; $i <= 3; $i++): ?>
-                    <?php $seedQuestion = $questions[$i - 1] ?? null; ?>
 
                     <div class="field">
 
@@ -616,15 +618,17 @@ $questions = $statement->fetchAll(PDO::FETCH_ASSOC);
                             Security Question <?= $i ?> <span class="required-marker">*</span>
                         </label>
 
-                        <p class="security-question-text"
-                           id="question<?= $i ?>">
-                            <?= $seedQuestion ? htmlspecialchars($seedQuestion['question_text'], ENT_QUOTES, 'UTF-8') : '' ?>
-                        </p>
+                        <select id="question<?= $i ?>"
+                                name="security_questions[]"
+                                required>
+                            <option value="">Select a question</option>
 
-                        <input type="hidden"
-                               name="security_questions[]"
-                               value="<?= $seedQuestion ? (int) $seedQuestion['question_id'] : '' ?>">
-
+                            <?php foreach ($questions as $question): ?>
+                                <option value="<?= (int) $question['question_id'] ?>" <?= ($oldQuestions[$i - 1] ?? '') === (string) $question['question_id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($question['question_text'], ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
 
                         <label for="answer<?= $i ?>">Answer <span class="required-marker">*</span></label>
 

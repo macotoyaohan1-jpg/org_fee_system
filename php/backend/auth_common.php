@@ -17,7 +17,8 @@ const AUTH_LOCKOUT_TIER_1_SECONDS = 15 + AUTH_LOCKOUT_D1_SECONDS;
 const AUTH_LOCKOUT_TIER_2_SECONDS = 30 + (2 * AUTH_LOCKOUT_D1_SECONDS);
 const AUTH_LOCKOUT_TIER_3_SECONDS = 60 + (4 * AUTH_LOCKOUT_D1_SECONDS);
 const AUTH_OTP_EXPIRY_MINUTES = 5;
-const AUTH_IDLE_TIMEOUT_SECONDS = 300;
+// Session Timeout
+const AUTH_IDLE_TIMEOUT_SECONDS = 10;
 const AUTH_IP_BLOCK_THRESHOLD = 16;
 const AUTH_IP_BLOCK_WINDOW_SECONDS = 600;
 const AUTH_IP_BLOCK_SECONDS = 600;
@@ -64,7 +65,7 @@ function auth_start_session(): void
                 'SESSION_IDLE_TIMEOUT',
                 null,
                 $userId,
-                'The session ended after five minutes of inactivity.'
+                'The session ended after 10 seconds of inactivity.'
             );
         } catch (PDOException $error) {
             error_log('Unable to log idle session timeout: ' . $error->getMessage());
@@ -73,7 +74,7 @@ function auth_start_session(): void
         $_SESSION = [];
         session_regenerate_id(true);
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-        $_SESSION['login_error'] = 'Your session expired after five minutes of inactivity. Please sign in again.';
+        $_SESSION['login_error'] = 'Your session expired after 10 seconds of inactivity. Please sign in again.';
         return;
     }
 
@@ -96,12 +97,23 @@ function auth_session_timeout_markup(): string
 
     return '<div id="sessionTimeoutWarning" role="alert" hidden '
         . 'style="position:fixed;right:16px;bottom:16px;z-index:9999;'
-        . 'max-width:360px;padding:14px 18px;background:#fff3cd;color:#493b12;'
-        . 'border:1px solid #e6c95c;border-radius:8px;box-shadow:0 4px 16px #0002;">'
+        . 'max-width:380px;padding:16px 18px;background:#fff;color:#173323;'
+        . 'border:1px solid #d9e4d8;border-radius:12px;'
+        . 'box-shadow:0 12px 30px rgba(13,31,22,.18);'
+        . 'font-family:Poppins,Arial,sans-serif;">'
+        . '<div style="font-size:.82rem;font-weight:600;line-height:1.55;">'
         . '<span>Your session will end in </span>'
-        . '<strong id="sessionTimeoutCountdown">60</strong>'
-        . '<span> seconds due to inactivity.</span> '
-        . '<button type="button" id="staySignedIn">Stay signed in</button>'
+        . '<strong id="sessionTimeoutCountdown" style="color:#1c4d2e;">5</strong>'
+        . '<span> seconds due to inactivity.</span>'
+        . '</div>'
+        . '<button type="button" id="staySignedIn" '
+        . 'style="display:inline-flex;align-items:center;justify-content:center;'
+        . 'width:100%;min-height:43px;margin-top:12px;padding:0 18px;border:0;'
+        . 'border-radius:10px;background:linear-gradient(90deg,#1d6c38,#2d8a4d);'
+        . 'color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;'
+        . 'cursor:pointer;box-shadow:0 6px 16px rgba(28,77,46,.18);">'
+        . 'Stay signed in'
+        . '</button>'
         . '</div>'
         . '<script>'
         . '(function(){'
@@ -110,10 +122,12 @@ function auth_session_timeout_markup(): string
         . 'const stayButton=document.getElementById("staySignedIn");'
         . 'if(!warning||!countdown||!stayButton)return;'
         . 'const csrf=' . json_encode((string) ($_SESSION['csrf_token'] ?? '')) . ';'
-        . 'let idleTimer;let warningTimer;let remaining=60;let lastPing=0;'
+        . 'const sessionTimeout=' . AUTH_IDLE_TIMEOUT_SECONDS . ';'
+        . 'const warningSeconds=Math.min(5,sessionTimeout);'
+        . 'let idleTimer;let warningTimer;let remaining=warningSeconds;let lastPing=0;'
         . 'function redirectToLogin(){window.location.assign("login.php");}'
-        . 'function ping(){'
-        . 'if(Date.now()-lastPing<10000)return Promise.resolve();'
+        . 'function ping(force){'
+        . 'if(!force&&Date.now()-lastPing<10000)return Promise.resolve();'
         . 'lastPing=Date.now();'
         . 'return fetch("backend/session_activity.php",{method:"POST",'
         . 'credentials:"same-origin",headers:{"Content-Type":"application/x-www-form-urlencoded"},'
@@ -125,19 +139,19 @@ function auth_session_timeout_markup(): string
         . '}'
         . 'function resetTimer(){'
         . 'window.clearTimeout(idleTimer);window.clearInterval(warningTimer);'
-        . 'warning.hidden=true;remaining=60;countdown.textContent=String(remaining);'
+        . 'warning.hidden=true;remaining=warningSeconds;countdown.textContent=String(remaining);'
         . 'idleTimer=window.setTimeout(showWarning,'
-        . (AUTH_IDLE_TIMEOUT_SECONDS - 60) * 1000 . ');'
+        . 'Math.max(0,(sessionTimeout-warningSeconds))*1000);'
         . '}'
         . 'function showWarning(){'
-        . 'warning.hidden=false;remaining=60;countdown.textContent=String(remaining);'
+        . 'warning.hidden=false;remaining=warningSeconds;countdown.textContent=String(remaining);'
         . 'warningTimer=window.setInterval(function(){'
         . 'remaining--;countdown.textContent=String(remaining);'
-        . 'if(remaining<=0){window.clearInterval(warningTimer);ping().finally(redirectToLogin);}'
+        . 'if(remaining<=0){window.clearInterval(warningTimer);redirectToLogin();}'
         . '},1000);'
         . '}'
-        . 'function registerActivity(){resetTimer();ping();}'
-        . '["pointerdown","keydown","scroll","touchstart","mousemove"].forEach(function(eventName){'
+        . 'function registerActivity(){resetTimer();ping(true);}'
+        . '["pointerdown","keydown","scroll","touchstart"].forEach(function(eventName){'
         . 'document.addEventListener(eventName,registerActivity,{passive:true});'
         . '});'
         . 'stayButton.addEventListener("click",registerActivity);'

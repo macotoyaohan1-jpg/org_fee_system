@@ -131,7 +131,7 @@ $escapeHtml = static fn ($value): string => htmlspecialchars(
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/admin_dashboard.css?v=17">
+    <link rel="stylesheet" href="css/admin_dashboard.css?v=18">
 </head>
 
 <body>
@@ -588,6 +588,33 @@ $escapeHtml = static fn ($value): string => htmlspecialchars(
 
                 </div>
 
+                <div
+                    class="approval-confirm-overlay"
+                    id="approvalConfirmOverlay"
+                    hidden
+                >
+                    <div
+                        class="approval-confirm-dialog"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="approvalConfirmTitle"
+                        aria-describedby="approvalConfirmMessage"
+                    >
+                        <div class="approval-confirm-icon" id="approvalConfirmIcon" aria-hidden="true">!</div>
+                        <p class="approval-confirm-eyebrow">TREASURER APPLICATION</p>
+                        <h2 id="approvalConfirmTitle">Confirm action</h2>
+                        <p id="approvalConfirmMessage"></p>
+                        <div class="approval-confirm-actions">
+                            <button type="button" class="approval-confirm-cancel" id="approvalConfirmCancel">
+                                Cancel
+                            </button>
+                            <button type="button" class="approval-confirm-submit" id="approvalConfirmSubmit">
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </section>
 
 
@@ -614,7 +641,7 @@ $escapeHtml = static fn ($value): string => htmlspecialchars(
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Dashboard JavaScript -->
-    <script src="js/admin_dashboard.js?v=15"></script>
+    <script src="js/admin_dashboard.js?v=16"></script>
 
     <?= auth_session_timeout_markup() ?>
 

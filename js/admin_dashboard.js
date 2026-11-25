@@ -601,12 +601,103 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
     // Approve or reject a Treasurer application.
+    function showApprovalConfirmation(actionName, idNumber) {
+        const overlay = document.getElementById('approvalConfirmOverlay');
+        const title = document.getElementById('approvalConfirmTitle');
+        const message = document.getElementById('approvalConfirmMessage');
+        const icon = document.getElementById('approvalConfirmIcon');
+        const cancelButton = document.getElementById('approvalConfirmCancel');
+        const submitButton = document.getElementById('approvalConfirmSubmit');
+
+        if (!overlay || !title || !message || !cancelButton || !submitButton) {
+            return Promise.resolve(window.confirm(
+                `Are you sure you want to ${actionName} Treasurer ${idNumber}?`
+            ));
+        }
+
+        const isReject = actionName === 'reject';
+        cancelButton.hidden = false;
+        title.textContent = isReject ? 'Reject Treasurer?' : 'Approve Treasurer?';
+        message.textContent =
+            `Are you sure you want to ${actionName} Treasurer ${idNumber}?`;
+        icon.textContent = isReject ? '!' : '\u2713';
+        submitButton.textContent = isReject ? 'Reject' : 'Approve';
+        submitButton.classList.toggle('is-reject', isReject);
+        overlay.hidden = false;
+        cancelButton.focus();
+
+        return new Promise(function (resolve) {
+            const close = function (confirmed) {
+                overlay.hidden = true;
+                cancelButton.removeEventListener('click', cancelHandler);
+                submitButton.removeEventListener('click', submitHandler);
+                overlay.removeEventListener('keydown', keyHandler);
+                resolve(confirmed);
+            };
+
+            const cancelHandler = function () {
+                close(false);
+            };
+
+            const submitHandler = function () {
+                close(true);
+            };
+
+            const keyHandler = function (event) {
+                if (event.key === 'Escape') {
+                    close(false);
+                }
+            };
+
+            cancelButton.addEventListener('click', cancelHandler);
+            submitButton.addEventListener('click', submitHandler);
+            overlay.addEventListener('keydown', keyHandler);
+        });
+    }
+
+    function showApprovalResult(resultMessage, isError) {
+        const overlay = document.getElementById('approvalConfirmOverlay');
+        const title = document.getElementById('approvalConfirmTitle');
+        const message = document.getElementById('approvalConfirmMessage');
+        const icon = document.getElementById('approvalConfirmIcon');
+        const cancelButton = document.getElementById('approvalConfirmCancel');
+        const submitButton = document.getElementById('approvalConfirmSubmit');
+
+        if (!overlay || !title || !message || !cancelButton || !submitButton) {
+            alert(resultMessage);
+            return;
+        }
+
+        cancelButton.hidden = true;
+        title.textContent = isError ? 'Unable to update application' : 'Application updated';
+        message.textContent = resultMessage;
+        icon.textContent = isError ? '!' : '\u2713';
+        submitButton.textContent = 'OK';
+        submitButton.classList.toggle('is-reject', isError);
+        overlay.hidden = false;
+        submitButton.focus();
+
+        const close = function () {
+            overlay.hidden = true;
+            submitButton.removeEventListener('click', close);
+            overlay.removeEventListener('keydown', keyHandler);
+        };
+        const keyHandler = function (event) {
+            if (event.key === 'Escape' || event.key === 'Enter') {
+                close();
+            }
+        };
+
+        submitButton.addEventListener('click', close);
+        overlay.addEventListener('keydown', keyHandler);
+    }
+
     async function processTreasurerApplication(idNumber, action) {
 
         const actionName = action === 'approve' ? 'approve' : 'reject';
-
-        const confirmed = window.confirm(
-            `Are you sure you want to ${actionName} Treasurer ${idNumber}?`
+        const confirmed = await showApprovalConfirmation(
+            actionName,
+            idNumber
         );
 
         if (!confirmed) {
@@ -618,7 +709,10 @@ document.addEventListener('DOMContentLoaded', function () {
         )?.value;
 
         if (!csrfToken) {
-            alert('Security token is missing. Please refresh the page.');
+            showApprovalResult(
+                'Security token is missing. Please refresh the page.',
+                true
+            );
             return;
         }
 
@@ -649,7 +743,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 );
             }
 
-            alert(result.message);
+            showApprovalResult(result.message, false);
 
             // Refresh the pending applications after processing.
             loadPendingTreasurers();
@@ -658,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             console.error('Treasurer approval action error:', error);
 
-            alert(error.message);
+            showApprovalResult(error.message, true);
 
         }
     }

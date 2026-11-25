@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "vscjava.migrate-java-to-azure",
+        "ms-dotnettools.upgrade-agent"
+    ]
+}

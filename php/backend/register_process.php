@@ -669,18 +669,16 @@ if (
     );
 }
 
-$passwordScore = 0;
-$passwordScore += strlen($password) >= 8 ? 1 : 0;
-$passwordScore += (
-    preg_match('/[a-z]/', $password) &&
-    preg_match('/[A-Z]/', $password)
-) ? 1 : 0;
-$passwordScore += preg_match('/[0-9]/', $password) ? 1 : 0;
-$passwordScore += preg_match('/[^A-Za-z0-9]/', $password) ? 1 : 0;
-$passwordScore += strlen($password) >= 12 ? 1 : 0;
-
-if ($passwordScore < 3) {
-    registration_fail('Choose a medium or strong password with at least three character types.', 'password');
+if (
+    preg_match('/[a-z]/', $password) !== 1 ||
+    preg_match('/[A-Z]/', $password) !== 1 ||
+    preg_match('/[0-9]/', $password) !== 1 ||
+    preg_match('/[^A-Za-z0-9\s]/', $password) !== 1
+) {
+    registration_fail(
+        'Password must contain uppercase and lowercase letters, a number, and a special character.',
+        'password'
+    );
 }
 
 
@@ -710,7 +708,7 @@ if (
     count($answers) !== 3
 ) {
     registration_fail(
-        'Choose the three security questions provided for your account and enter each answer.',
+        'Choose three security questions and enter each answer.',
         'question1'
     );
 }

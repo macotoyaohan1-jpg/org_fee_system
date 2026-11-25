@@ -259,6 +259,102 @@ tbody tr:last-child td { border-bottom: 0; }
     background: #a33a3a;
 }
 
+.approval-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(13, 31, 22, 0.72);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+
+.approval-confirm-overlay[hidden] {
+    display: none;
+}
+
+.approval-confirm-dialog {
+    width: min(440px, 100%);
+    padding: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    background: rgba(247, 251, 245, 0.98);
+    box-shadow: 0 24px 70px rgba(13, 31, 22, 0.38);
+    color: var(--ink);
+    text-align: center;
+}
+
+.approval-confirm-icon {
+    display: inline-flex;
+    width: 52px;
+    height: 52px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    border: 1px solid #cfddce;
+    border-radius: 50%;
+    background: #edf4ec;
+    color: var(--green);
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.approval-confirm-eyebrow {
+    margin: 0 0 6px;
+    color: var(--green);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.approval-confirm-dialog h2 {
+    margin: 0;
+    color: var(--forest);
+    font-size: 1.35rem;
+}
+
+.approval-confirm-dialog > p:not(.approval-confirm-eyebrow) {
+    margin: 10px 0 22px;
+    color: #465b4a;
+    font-size: .82rem;
+    line-height: 1.65;
+}
+
+.approval-confirm-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.approval-confirm-actions button {
+    min-width: 120px;
+    min-height: 42px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.approval-confirm-cancel {
+    border: 1px solid #cfddce;
+    background: #f3f7f1;
+    color: var(--green);
+}
+
+.approval-confirm-submit {
+    border: 0;
+    background: linear-gradient(90deg, var(--green), #2d7042);
+    color: white;
+}
+
+.approval-confirm-submit.is-reject {
+    background: #a33a3a;
+}
+
 .filter-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .filter-group { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
 .filter-group label { color: var(--green); font-size: .68rem; font-weight: 600; }

@@ -743,6 +743,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
     extension.dispatchEvent(new Event("change"));
 
+    const otherExtension = document.getElementById("other_extension");
+
+    if (otherExtension) {
+        otherExtension.addEventListener("input", function () {
+            if (!otherExtension.value.trim()) {
+                clearFieldError(otherExtension);
+                return;
+            }
+
+            validateField(otherExtension);
+        });
+
+        otherExtension.addEventListener("blur", function () {
+            if (!otherExtension.value.trim()) {
+                showFieldError(otherExtension, "Enter the name extension you selected.");
+                return;
+            }
+
+            validateField(otherExtension);
+        });
+    }
+
     function setAvailabilityFeedback(feedback, message, state) {
         feedback.textContent = message;
         feedback.className =
@@ -1071,6 +1093,10 @@ document.addEventListener("DOMContentLoaded", function () {
             score++;
         }
 
+        if (/[@$!%*?&]/.test(value)) {
+            score++;
+        }
+
         if (value.length >= 12) {
             score++;
         }
@@ -1120,6 +1146,40 @@ document.addEventListener("DOMContentLoaded", function () {
     confirmPassword.addEventListener("input", function () {
         clearFieldError(confirmPassword);
     });
+
+    // Prevent duplicate security question selections.
+    const questionSelects = [
+        document.getElementById("question1"),
+        document.getElementById("question2"),
+        document.getElementById("question3")
+    ];
+
+    function updateQuestionOptions() {
+        const selectedValues = questionSelects.map(function (select) {
+            return select.value;
+        });
+
+        questionSelects.forEach(function (currentSelect) {
+            Array.from(currentSelect.options).forEach(function (option) {
+                if (option.value === "") {
+                    option.disabled = false;
+                    return;
+                }
+
+                const alreadySelected = selectedValues.includes(option.value);
+                option.disabled = alreadySelected && currentSelect.value !== option.value;
+            });
+        });
+    }
+
+    questionSelects.forEach(function (select) {
+        select.addEventListener("change", function () {
+            updateQuestionOptions();
+            clearFieldError(select);
+        });
+    });
+
+    updateQuestionOptions();
 
 
     // =========================================
@@ -1213,14 +1273,99 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        // Password strength validation.
-        if (field.id === "password") {
+        if (["first_name", "middle_name", "family_name"].includes(field.id) && field.value.trim()) {
+            const label = field.id === "first_name"
+                ? "First Name"
+                : (field.id === "middle_name" ? "Middle Name" : "Family Name");
+            const name = field.value.trim();
+
+            if (name.length < 2) {
+                field.setCustomValidity(label + " must be at least 2 characters.");
+            } else if (/[0-9]/.test(name)) {
+                field.setCustomValidity("Numbers are not allowed in " + label + ".");
+            } else if (name.includes("  ")) {
+                field.setCustomValidity("Double space is not allowed.");
+            } else if (/([A-Za-z])\1\1/i.test(name)) {
+                field.setCustomValidity("Three consecutive identical letters are not allowed.");
+            } else if (/^[A-Z ]+$/.test(name)) {
+                field.setCustomValidity("Do not use all capital letters.");
+            } else if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) {
+                field.setCustomValidity("Special characters are not allowed in " + label + ".");
+            } else if (!/^[A-Z][a-z]+(?: [A-Z][a-z]+)*$/.test(name)) {
+                if (field.id === "first_name" && /^[a-z]/.test(name)) {
+                    field.setCustomValidity("First letter of your name must be capital.");
+                } else {
+                    field.setCustomValidity(
+                        "First letter of each word must be capital; the rest must be lowercase."
+                    );
+                }
+            }
+        }
+
+        if (field.id === "organization_name" && field.value.trim()) {
+            const organizationName = field.value.trim();
+
+            if (organizationName.length < 2 || organizationName.length > 150) {
+                field.setCustomValidity("Organization Name must be between 2 and 150 characters.");
+            } else if (!/^[A-Za-z0-9][A-Za-z0-9 .,&()\/\-]*$/.test(organizationName)) {
+                field.setCustomValidity("Organization Name contains invalid characters.");
+            }
+        }
+
+        if (field.id === "organization_acronym" && field.value.trim()) {
+            const acronym = field.value.trim();
 
             if (
-                strengthText.textContent === "Weak" ||
-                strengthText.textContent === "Password strength"
+                acronym.length < 2 ||
+                acronym.length > 30 ||
+                !/^[A-Za-z0-9][A-Za-z0-9 .,&()\/\-]*$/.test(acronym)
             ) {
-                field.setCustomValidity("Please create a Medium or Strong password.");
+                field.setCustomValidity(
+                    "Organization Acronym must be 2-30 letters, numbers, spaces, or valid punctuation."
+                );
+            }
+        }
+
+        if (field.id === "department_college" && field.value.trim()) {
+            const department = field.value.trim();
+
+            if (
+                department.length < 2 ||
+                department.length > 150 ||
+                !/^[A-Za-z0-9][A-Za-z0-9 .,&()\/\-]*$/.test(department)
+            ) {
+                field.setCustomValidity(
+                    "Department / College must be 2-150 letters, numbers, spaces, or valid punctuation."
+                );
+            }
+        }
+
+        if (field.id === "organization_contact_number" && field.value.trim()) {
+            if (!/^09[0-9]{9}$/.test(field.value.trim())) {
+                field.setCustomValidity(
+                    "Organization Contact Number must be 11 digits and start with 09."
+                );
+            }
+        }
+
+        // Password strength validation.
+        if (field.id === "password") {
+            const passwordValue = field.value;
+            const lengthValid = passwordValue.length >= 8 && passwordValue.length <= 64;
+            const compositionValid =
+                /[a-z]/.test(passwordValue) &&
+                /[A-Z]/.test(passwordValue) &&
+                /[0-9]/.test(passwordValue) &&
+                /[^A-Za-z0-9\s]/.test(passwordValue);
+
+            if (!lengthValid) {
+                field.setCustomValidity("Password must be between 8 and 64 characters.");
+            } else if (!compositionValid) {
+                field.setCustomValidity(
+                    "Password must contain uppercase and lowercase letters, a number, and a special character."
+                );
+            } else {
+                field.setCustomValidity("");
             }
 
         }
@@ -1265,7 +1410,9 @@ document.addEventListener("DOMContentLoaded", function () {
             field.value.trim() &&
             !["I", "II", "III", "IV", "IX", "X"].includes(field.value.trim())
         ) {
-            field.setCustomValidity("Use I, II, III, IV, IX, or X.");
+            field.setCustomValidity(
+                "Choose I, II, III, IV, IX, or X for the other name extension."
+            );
         }
 
         if (!field.checkValidity()) {
@@ -1313,7 +1460,12 @@ document.addEventListener("DOMContentLoaded", function () {
     registerForm.addEventListener("input", function (event) {
 
         if (event.target.matches("input, textarea")) {
-            clearFieldError(event.target);
+            if (!event.target.value.trim()) {
+                clearFieldError(event.target);
+                return;
+            }
+
+            validateField(event.target);
         }
 
     });
@@ -1321,7 +1473,12 @@ document.addEventListener("DOMContentLoaded", function () {
     registerForm.addEventListener("change", function (event) {
 
         if (event.target.matches("input, select, textarea")) {
-            clearFieldError(event.target);
+            if (!event.target.value.trim()) {
+                clearFieldError(event.target);
+                return;
+            }
+
+            validateField(event.target);
         }
 
     });
